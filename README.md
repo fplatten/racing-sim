@@ -1,7 +1,11 @@
 # Oval Racing Sim (POC)
 
 A 3D open-wheel oval racing proof of concept built with **jMonkeyEngine 3.9** + **Minie 9** (Bullet) on Java 21.
-It has custom tire and aero physics at a fixed 240 Hz, 7 AI opponents, and aerodynamic drafting.
+It has custom tire and aero physics at a fixed 240 Hz, up to 32 AI opponents, aerodynamic drafting and pit stops.
+
+![Racing into Turn 1](docs/rubber-groove.png)
+
+**[Watch the 30-second opening movie (MP4, 48 MB)](docs/opening-movie.mp4)**: splash screen, race setup, and a rolling start with sound.
 
 ```
 ./gradlew run          # race (Windows PowerShell: .\gradlew.bat run)
