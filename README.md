@@ -1,6 +1,6 @@
 # Oval Racing Sim (POC)
 
-A 3D open-wheel oval racing proof of concept built with **jMonkeyEngine 3.9** + **Minie 9** (Bullet) on Java 21.
+Single day build of a 3D open-wheel oval racing proof of concept built with **jMonkeyEngine 3.9** + **Minie 9** (Bullet) on Java 21.
 It has custom tire and aero physics at a fixed 240 Hz, up to 32 AI opponents, aerodynamic drafting and pit stops.
 
 ![Racing into Turn 1](docs/rubber-groove.png)
@@ -24,7 +24,7 @@ It has custom tire and aero physics at a fixed 240 Hz, up to 32 AI opponents, ae
    - **Pit stops:** none, or 1 to 3 mandatory stops for every car.
    - **Downforce:** a slider for your car's wings, from **SPEED** (minimum downforce, the default) to **CONTROL** (maximum downforce) in 10 steps. More downforce presses the car into the track for more grip in the turns and under braking, but the bigger wings add drag. At full downforce, the top speed drops from about 222 to about 201 mph. The HUD shows the setting as `DOWNFORCE n/10`. Every AI car gets a random wing level (0–10) at the start of each race and plans its corner speeds for it, so some opponents are fast on the straights and others are quicker through the turns. Because of this, the AI starts a pass only if it can finish it before the next turn, and backs out of an outside pass it can't finish.
 2. **Rolling start:** every race starts on the front straight just off Turn 4, at about 130 mph.
-   - **Grid:** Indianapolis style, **three abreast** in rows of 3 with the pole on the inside, so 11 rows for 33 cars.
+   - **Grid:** Three abreast in rows of 3 with the pole on the inside, so 11 rows for 33 cars.
    - **Opening lap:** the AI cars hold their lanes through the green flag and Turns 1 and 2, taking the turns a little slower while three-wide. On the back straight each car merges onto the racing line once the line beside it is clear.
    - **Green flag:** the first crossing of the start/finish line starts lap 1.
 3. **During the race:** the HUD shows `LAP n/N`, then `FINAL LAP`, and `PITS n/N` when stops are required (yellow until you have made them all, then green). The chequered flag drops when a car completes N laps.
@@ -128,7 +128,6 @@ Screenshot helpers (they exit when done):
 - `RACINGSIM_AUTOPILOT=1` lets the AI drive your car.
 
 ## Pit lane
-The pit lane is laid out like Indianapolis's (`track/PitLane`).
 
 ![pit lane](docs/pit-lane.png)
 
@@ -137,7 +136,7 @@ The pit lane is laid out like Indianapolis's (`track/PitLane`).
 | **Pit entry** | Exit of Turn 4 | A painted divider on the apron separates the entry lane from the racing surface. The lane then curves in behind the end of the pit wall. |
 | **Pit lane** | Inside the front straight, behind a concrete pit wall | A fast lane, then **33 pit boxes of 24 m each**, then a pit stand with a coloured canopy behind each box, then the pit back wall. White speed-limit lines cross the lane at both ends. |
 | **Your box** | Box 17, the middle one, centred on the start/finish line | Painted **solid yellow**, with a yellow-canopied pit stand ([screenshot](docs/pit-box.png)). |
-| **Pit exit** | Turns 1 and 2 | As at Indianapolis, the pit exit is a separate paved lane on the inside of the race track. A grass median separates it from the track's narrowed apron, and it has white edge lines. At the exit of Turn 2 the median tapers away and the lane merges onto the race track ([Turn 1](docs/pit-exit-lane-turn1.png), [Turn 2](docs/pit-exit-lane-turn2.png), [merge](docs/pit-exit-lane-merge.png)). |
+| **Pit exit** | Turns 1 and 2 | The pit exit is a separate paved lane on the inside of the race track. A grass median separates it from the track's narrowed apron, and it has white edge lines. At the exit of Turn 2 the median tapers away and the lane merges onto the race track ([Turn 1](docs/pit-exit-lane-turn1.png), [Turn 2](docs/pit-exit-lane-turn2.png), [merge](docs/pit-exit-lane-merge.png)). |
 
 The pit road, exit lane and walls are part of the physics collider, so you can drive through. Grass strips such as the exit-lane median have grass grip. The off-track safety net treats the pit complex as part of the track. See [Pit stops](#pit-stops) for how stops work.
 
