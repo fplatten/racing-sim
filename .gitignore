@@ -1,0 +1,39 @@
+# Gradle / Java build output
+.gradle/
+build/
+out/
+bin/
+*.class
+local.properties
+hs_err_pid*.log
+replay_pid*.log
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# Blender: auto-saved backups and Python caches of the asset scripts
+*.blend1
+*.blend2
+__pycache__/
+*.pyc
+
+# Raw movie recordings (MJPEG AVI, ~175 MB: over GitHub's 100 MB file limit).
+# docs/opening-movie.mp4 is the committed version (blender/avi_to_mp4.py).
+*.avi
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Local tool settings
+.claude/settings.local.json
+
+# OS clutter
+.DS_Store
+Thumbs.db
+desktop.ini

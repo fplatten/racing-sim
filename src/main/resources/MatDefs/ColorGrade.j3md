@@ -1,0 +1,24 @@
+MaterialDef ColorGrade {
+
+    MaterialParameters {
+        Int BoundDrawBuffer
+        Int NumSamples
+        Texture2D Texture
+        Float Saturation : 1.2
+        Float Contrast : 1.1
+        Float Vignette : 0.35
+        Color Tint : 1.0 1.0 1.0 1.0
+    }
+
+    Technique {
+        VertexShader GLSL300 GLSL150 GLSL100 : Common/MatDefs/Post/Post.vert
+        FragmentShader GLSL300 GLSL150 GLSL100 : MatDefs/ColorGrade.frag
+
+        WorldParameters {
+        }
+
+        Defines {
+            BOUND_DRAW_BUFFER: BoundDrawBuffer
+        }
+    }
+}
