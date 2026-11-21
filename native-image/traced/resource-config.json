@@ -1,0 +1,246 @@
+{
+  "resources":{
+  "includes":[{
+    "pattern":"\\QCommon/IBL/IBLKernels.frag\\E"
+  }, {
+    "pattern":"\\QCommon/IBL/IBLKernels.j3md\\E"
+  }, {
+    "pattern":"\\QCommon/IBL/IBLKernels.vert\\E"
+  }, {
+    "pattern":"\\QCommon/IBL/Math.glsl\\E"
+  }, {
+    "pattern":"\\QCommon/IBLSphH/IBLSphH.frag\\E"
+  }, {
+    "pattern":"\\QCommon/IBLSphH/IBLSphH.j3md\\E"
+  }, {
+    "pattern":"\\QCommon/IBLSphH/IBLSphH.vert\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Blur/HGaussianBlur.frag\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Blur/HGaussianBlur.j3md\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Blur/VGaussianBlur.frag\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Blur/VGaussianBlur.j3md\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Gui/Gui.j3md\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Light/PBRLighting.frag\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Light/PBRLighting.j3md\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Light/PBRLighting.vert\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Misc/Sky.frag\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Misc/Sky.vert\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Misc/SkyNonCube.j3md\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Misc/Unshaded.frag\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Misc/Unshaded.j3md\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Misc/Unshaded.vert\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Post/BloomExtract.j3md\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Post/BloomFinal.j3md\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Post/FXAA.frag\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Post/FXAA.j3md\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Post/FXAA.vert\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Post/LightScattering.frag\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Post/LightScattering.j3md\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Post/Post.vert\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Post/ToneMap.frag\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Post/ToneMap.j3md\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Post/bloomExtract.frag\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Post/bloomFinal.frag\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/SSAO/Textures/random.png\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/SSAO/ssao.frag\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/SSAO/ssao.j3md\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/SSAO/ssaoBlur.frag\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/SSAO/ssaoBlur.j3md\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Shadow/PostShadow.j3md\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Shadow/PostShadow.vert\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Shadow/PostShadowPBR.frag\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Shadow/PreShadow.j3md\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Shadow/PreShadow.vert\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Shadow/PreShadowPBR.frag\\E"
+  }, {
+    "pattern":"\\QCommon/ShaderLib/GLSLCompat.glsllib\\E"
+  }, {
+    "pattern":"\\QCommon/ShaderLib/Instancing.glsllib\\E"
+  }, {
+    "pattern":"\\QCommon/ShaderLib/MaterialFog.glsllib\\E"
+  }, {
+    "pattern":"\\QCommon/ShaderLib/Math.glsllib\\E"
+  }, {
+    "pattern":"\\QCommon/ShaderLib/MorphAnim.glsllib\\E"
+  }, {
+    "pattern":"\\QCommon/ShaderLib/MultiSample.glsllib\\E"
+  }, {
+    "pattern":"\\QCommon/ShaderLib/Optics.glsllib\\E"
+  }, {
+    "pattern":"\\QCommon/ShaderLib/PBR.glsllib\\E"
+  }, {
+    "pattern":"\\QCommon/ShaderLib/Parallax.glsllib\\E"
+  }, {
+    "pattern":"\\QCommon/ShaderLib/Shadows.glsllib\\E"
+  }, {
+    "pattern":"\\QCommon/ShaderLib/Skinning.glsllib\\E"
+  }, {
+    "pattern":"\\QCommon/ShaderLib/module/Light.glsl\\E"
+  }, {
+    "pattern":"\\QCommon/ShaderLib/module/PBRSurface.glsl\\E"
+  }, {
+    "pattern":"\\QCommon/ShaderLib/module/pbrlighting/PBRLightingUtils.glsllib\\E"
+  }, {
+    "pattern":"\\QInterface/Fonts/Console.fnt\\E"
+  }, {
+    "pattern":"\\QInterface/Fonts/Console.png\\E"
+  }, {
+    "pattern":"\\QInterface/Fonts/Default.fnt\\E"
+  }, {
+    "pattern":"\\QInterface/Fonts/Default.png\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.lang.System$LoggerFinder\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.time.zone.ZoneRulesProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/javax.imageio.spi.ImageInputStreamSpi\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/javax.imageio.spi.ImageOutputStreamSpi\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/javax.imageio.spi.ImageReaderSpi\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/javax.imageio.spi.ImageTranscoderSpi\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/javax.imageio.spi.ImageWriterSpi\\E"
+  }, {
+    "pattern":"\\QMETA-INF/windows/x64/org/lwjgl/glfw/glfw.dll.sha1\\E"
+  }, {
+    "pattern":"\\QMETA-INF/windows/x64/org/lwjgl/jemalloc/jemalloc.dll.sha1\\E"
+  }, {
+    "pattern":"\\QMETA-INF/windows/x64/org/lwjgl/lwjgl.dll.sha1\\E"
+  }, {
+    "pattern":"\\QMETA-INF/windows/x64/org/lwjgl/openal/OpenAL.dll.sha1\\E"
+  }, {
+    "pattern":"\\QMETA-INF/windows/x64/org/lwjgl/opengl/lwjgl_opengl.dll.sha1\\E"
+  }, {
+    "pattern":"\\QMatDefs/ColorGrade.frag\\E"
+  }, {
+    "pattern":"\\QMatDefs/ColorGrade.j3md\\E"
+  }, {
+    "pattern":"\\QModels/Car/indycar.glb\\E"
+  }, {
+    "pattern":"\\QModels/Car/wheel_front.glb\\E"
+  }, {
+    "pattern":"\\QModels/Car/wheel_rear.glb\\E"
+  }, {
+    "pattern":"\\QModels/Props/grandstand.glb\\E"
+  }, {
+    "pattern":"\\QModels/Props/light_tower.glb\\E"
+  }, {
+    "pattern":"\\QModels/Props/shrub_0.glb\\E"
+  }, {
+    "pattern":"\\QModels/Props/tent.glb\\E"
+  }, {
+    "pattern":"\\QModels/Props/timing_tower.glb\\E"
+  }, {
+    "pattern":"\\QModels/Props/tree_0.glb\\E"
+  }, {
+    "pattern":"\\QModels/Props/tree_1.glb\\E"
+  }, {
+    "pattern":"\\QModels/Props/tree_2.glb\\E"
+  }, {
+    "pattern":"\\QModels/Props/tree_3.glb\\E"
+  }, {
+    "pattern":"\\QTextures/Car/carbon_albedo.png\\E"
+  }, {
+    "pattern":"\\QTextures/Car/carbon_normal.png\\E"
+  }, {
+    "pattern":"\\QTextures/Props/bark_albedo.png\\E"
+  }, {
+    "pattern":"\\QTextures/Props/bark_normal.png\\E"
+  }, {
+    "pattern":"\\QTextures/Props/leaves_atlas.png\\E"
+  }, {
+    "pattern":"\\QTextures/Props/treeline.png\\E"
+  }, {
+    "pattern":"\\QTextures/Sky/sky_sunset.png\\E"
+  }, {
+    "pattern":"\\QTextures/Track/asphalt_albedo.png\\E"
+  }, {
+    "pattern":"\\QTextures/Track/asphalt_normal.png\\E"
+  }, {
+    "pattern":"\\QTextures/Track/asphalt_rough.png\\E"
+  }, {
+    "pattern":"\\QTextures/Track/chainlink.png\\E"
+  }, {
+    "pattern":"\\QTextures/Track/crowd_row.png\\E"
+  }, {
+    "pattern":"\\QTextures/Track/grass_albedo.png\\E"
+  }, {
+    "pattern":"\\QTextures/Track/grass_normal.png\\E"
+  }, {
+    "pattern":"\\QTextures/Track/wall_albedo.png\\E"
+  }, {
+    "pattern":"\\QTextures/Track/wall_normal.png\\E"
+  }, {
+    "pattern":"\\QTextures/Track/wall_rough.png\\E"
+  }, {
+    "pattern":"\\QTextures/UI/splash.png\\E"
+  }, {
+    "pattern":"\\Qcom/jme3/asset/Desktop.cfg\\E"
+  }, {
+    "pattern":"\\Qcom/jme3/asset/General.cfg\\E"
+  }, {
+    "pattern":"\\Qcom/jme3/system/NativeLibraryLoader.class\\E"
+  }, {
+    "pattern":"\\Qcom/jme3/system/version.properties\\E"
+  }, {
+    "pattern":"\\Qnative/windows/x86_64/bulletjme.dll\\E"
+  }, {
+    "pattern":"\\Qopengl32.dll\\E"
+  }, {
+    "pattern":"\\Qwindows/x64/org/lwjgl/glfw/glfw.dll\\E"
+  }, {
+    "pattern":"\\Qwindows/x64/org/lwjgl/jemalloc/jemalloc.dll\\E"
+  }, {
+    "pattern":"\\Qwindows/x64/org/lwjgl/lwjgl.dll\\E"
+  }, {
+    "pattern":"\\Qwindows/x64/org/lwjgl/openal/OpenAL.dll\\E"
+  }, {
+    "pattern":"\\Qwindows/x64/org/lwjgl/opengl/lwjgl_opengl.dll\\E"
+  }, {
+    "pattern":"java.base:\\Qjdk/internal/icu/impl/data/icudt72b/nfc.nrm\\E"
+  }, {
+    "pattern":"java.base:\\Qsun/net/www/content-types.properties\\E"
+  }]},
+  "bundles":[{
+    "name":"sun.awt.resources.awt",
+    "classNames":["sun.awt.resources.awt"]
+  }]
+}

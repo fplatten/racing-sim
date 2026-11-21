@@ -1,0 +1,17 @@
+{
+  "resources": {
+    "includes": [
+      {"pattern": "^Common/.*"},
+      {"pattern": "^Interface/.*"},
+      {"pattern": "^Textures/.*"},
+      {"pattern": "^Models/.*"},
+      {"pattern": "^Sounds/.*"},
+      {"pattern": "^Shaders/.*"},
+      {"pattern": "^MatDefs/.*"},
+      {"pattern": "^com/jme3/.*\\.(cfg|properties)$"},
+      {"pattern": "^windows/x64/.*\\.dll$"},
+      {"pattern": "^META-INF/windows/x64/.*\\.sha1$"},
+      {"pattern": "^native/windows/x86_64/.*\\.dll$"}
+    ]
+  }
+}
