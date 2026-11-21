@@ -1,7 +1,9 @@
 """Re-encodes the recorded movie (MJPEG + PCM AVI) to an H.264 / AAC MP4 with Blender's built-in
 FFmpeg, so no separate ffmpeg install is needed:
 
-    blender --background --factory-startup --python blender/avi_to_mp4.py [-- in.avi out.mp4]
+    blender --background --factory-startup --python blender/avi_to_mp4.py [-- in.avi out.mp4 [QUALITY]]
+
+QUALITY is Blender's constant rate factor (default HIGH; MEDIUM for the one-lap movie).
 
 Defaults: docs/opening-movie.avi -> docs/opening-movie.mp4 (1600x900, 30 fps, AAC 192 kb/s).
 """
@@ -37,7 +39,7 @@ if hasattr(r.image_settings, "media_type"):  # Blender 5: video output is a sepa
 r.image_settings.file_format = "FFMPEG"
 r.ffmpeg.format = "MPEG4"
 r.ffmpeg.codec = "H264"
-r.ffmpeg.constant_rate_factor = "HIGH"
+r.ffmpeg.constant_rate_factor = ARGS[2] if len(ARGS) > 2 else "HIGH"   # MEDIUM keeps long movies under 100 MB
 r.ffmpeg.ffmpeg_preset = "GOOD"
 r.ffmpeg.gopsize = 30
 r.ffmpeg.audio_codec = "AAC"

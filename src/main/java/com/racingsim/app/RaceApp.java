@@ -99,6 +99,17 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
     private final java.io.ByteArrayOutputStream moviePcm = new java.io.ByteArrayOutputStream();
     private final float[] mixL = new float[com.racingsim.audio.SoundSynth.RATE / MOVIE_FPS];
     private final float[] mixR = new float[mixL.length];
+    // RACINGSIM_MOVIE_LAP=1: run until the player completes lap 1, then fade to black and show the
+    // repository link (an outro), instead of stopping after MOVIE_SECONDS
+    private final boolean movieLap = System.getenv("RACINGSIM_MOVIE_LAP") != null;
+    private static final int MOVIE_LAP_MAX_SECONDS = 180;        // safety stop
+    private static final float OUTRO_FADE = 2.0f, OUTRO_TEXT_IN = 1.0f, OUTRO_HOLD = 5.0f;
+    private static final String OUTRO_URL = "https://github.com/fplatten/racing-sim";
+    private float outroTime = -1f;                                // < 0: no outro yet
+    private float movieVolume = 1f;
+    private com.jme3.scene.Node outro;
+    private com.jme3.material.Material outroBlack;
+    private com.jme3.font.BitmapText outroUrl, outroNote;
 
     // ---- Esc confirm prompts ----
     private ConfirmDialog confirm;
@@ -320,7 +331,11 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
      * @return true if the app is stopping
      */
     private boolean movieScript(float tpf) {
-        if (++movieFrames > MOVIE_SECONDS * MOVIE_FPS) {
+        if (++movieFrames > (movieLap ? MOVIE_LAP_MAX_SECONDS : MOVIE_SECONDS) * MOVIE_FPS) {
+            stop();
+            return true;
+        }
+        if (movieLap && updateOutro(tpf)) {
             stop();
             return true;
         }
@@ -351,14 +366,74 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
             movieRaceTime += tpf;
             if (before < 9.5f && movieRaceTime >= 9.5f) cameraController.toggle();    // T-cam
             if (before < 14.5f && movieRaceTime >= 14.5f) cameraController.toggle();  // back to chase
+            if (movieLap) {                                   // the longer cut: T-cam down the back straight
+                if (before < 27f && movieRaceTime >= 27f) cameraController.toggle();
+                if (before < 33f && movieRaceTime >= 33f) cameraController.toggle();
+            }
         }
         return false;
     }
 
+    /**
+     * One-lap movie outro: once the player has completed lap 1, the picture and the sound fade to
+     * black over {@link #OUTRO_FADE} s, the repository link fades in and holds, then the recording stops.
+     * @return true when the outro is over
+     */
+    private boolean updateOutro(float tpf) {
+        if (outroTime < 0f) {
+            if (state != State.RACE || director.entryOf(director.getPlayer()).lapsCompleted() < 1) return false;
+            buildOutro();
+            outroTime = 0f;
+        } else {
+            outroTime += tpf;
+        }
+        float fade = Math.min(1f, outroTime / OUTRO_FADE);
+        fade = fade * fade * (3f - 2f * fade);                       // smoothstep
+        outroBlack.setColor("Color", new ColorRGBA(0f, 0f, 0f, fade));
+        movieVolume = 1f - fade;
+        float text = FastMath.clamp((outroTime - OUTRO_FADE) / OUTRO_TEXT_IN, 0f, 1f);
+        outroUrl.setColor(new ColorRGBA(1f, 1f, 1f, text));
+        outroNote.setColor(new ColorRGBA(0.75f, 0.77f, 0.80f, text));
+        return outroTime >= OUTRO_FADE + OUTRO_TEXT_IN + OUTRO_HOLD;
+    }
+
+    /** The black overlay and the two lines of text, above the HUD. */
+    private void buildOutro() {
+        float w = settings.getWidth(), h = settings.getHeight();
+        outro = new com.jme3.scene.Node("outro");
+        outroBlack = new com.jme3.material.Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        outroBlack.setColor("Color", new ColorRGBA(0f, 0f, 0f, 0f));
+        outroBlack.getAdditionalRenderState().setBlendMode(com.jme3.material.RenderState.BlendMode.Alpha);
+        com.jme3.scene.Geometry black = new com.jme3.scene.Geometry("outro-black", new com.jme3.scene.shape.Quad(w, h));
+        black.setMaterial(outroBlack);
+        outro.attachChild(black);
+        float base = h / 900f * guiFont.getCharSet().getRenderedSize();
+        outroUrl = outroLine(base * 3.4f, h * 0.5f + base * 3.6f, OUTRO_URL, w);
+        outroNote = outroLine(base * 2.2f, h * 0.5f - base * 0.4f, "link in the description", w);
+        outro.attachChild(outroUrl);
+        outro.attachChild(outroNote);
+        outro.setLocalTranslation(0, 0, 30f);                     // above the HUD and every dialog
+        guiNode.attachChild(outro);
+    }
+
+    private com.jme3.font.BitmapText outroLine(float size, float top, String s, float width) {
+        com.jme3.font.BitmapText t = new com.jme3.font.BitmapText(guiFont);
+        t.setSize(size);
+        t.setText(s);
+        t.setColor(new ColorRGBA(1f, 1f, 1f, 0f));
+        t.setLocalTranslation((width - t.getLineWidth()) / 2f, top, 1f);
+        return t;
+    }
+
     /** Mixes the sound of one video frame (silence before the race) into the movie track. */
     private void recordMovieAudio() {
-        if (audio != null && !confirmOpen) audio.mixdown(mixL, mixR);
-        else {
+        if (audio != null && !confirmOpen) {
+            audio.mixdown(mixL, mixR);
+            for (int i = 0; i < mixL.length; i++) {               // outro fade-out (1 otherwise)
+                mixL[i] *= movieVolume;
+                mixR[i] *= movieVolume;
+            }
+        } else {
             java.util.Arrays.fill(mixL, 0f);
             java.util.Arrays.fill(mixR, 0f);
         }
