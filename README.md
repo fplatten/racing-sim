@@ -61,9 +61,9 @@ It has custom tire and aero physics at a fixed 240 Hz, up to 32 AI opponents, ae
 ## Packages
 | Package | Contents |
 |---|---|
-| `track` | `TrackSpline`: 2.5 mi rectangular oval (5/8 mi straights, 1/8 mi chutes, four 1/4 mi turns banked 9.2°) with `(s, d)` track coordinates. `TrackBuilder`: surface/apron/walls mesh + static `RigidBodyControl` collider (mass 0), chequered start/finish line, fence posts and pylons every 50 m, turn boards, PBR-textured surfaces and chain-link fence. `Scenery`: Blender props (grandstands, timing tower, tents, light towers) and the woods (see [Surroundings](#surroundings)). `GroundShade`: colour of the land around the track and where the woods grow. `LapTracker`: laps, lap times, positions. |
+| `track` | `TrackSpline`: 2.5 mi rectangular oval (5/8 mi straights, 1/8 mi chutes, four 1/4 mi turns banked 9.2°) with `(s, d)` track coordinates. `TrackBuilder`: surface/apron/walls mesh + static `RigidBodyControl` collider (mass 0), chequered start/finish line, fence posts and pylons every 50 m, turn boards, PBR-textured surfaces and chain-link fence. `Scenery`: Blender props (grandstands along the whole front straight and round into the turns, the back-straight stands, timing tower, tents, light towers; `BannerTexture` paints the sponsor boards) and the woods (see [Surroundings](#surroundings)). `GroundShade`: colour of the land around the track and where the woods grow. `LapTracker`: laps, lap times, positions. |
 | `physics` | `FixedStepPhysics` (240 Hz via Bullet sub-steps), `TireModel` (Pacejka Magic Formula + load sensitivity + friction ellipse), `AeroModel` (v² drag/downforce), `DraftingSystem` (60 m × ±3.5 m wake cone, draftFactor 0–0.35). |
-| `vehicle` | `VehiclePhysics` (4-wheel raycast suspension, springs/dampers/ARBs, sub-stepped wheel spin, RWD powertrain, brakes), `Gearbox` (6-speed sequential, auto/manual, reverse), `VehicleSpec`, `CarModelFactory` (Blender glTF car + PBR materials), `LiveryPainter`, `TireTexture`, `Livery`, `Car`. |
+| `vehicle` | `VehiclePhysics` (4-wheel raycast suspension, springs/dampers/ARBs, sub-stepped wheel spin, RWD powertrain, brakes), `Gearbox` (6-speed sequential, auto/manual, reverse), `VehicleSpec`, `CarModelFactory` (Blender glTF car + PBR materials), `LiveryPainter`, `HelmetPainter`, `BodyDetail`, `TireTexture`, `Livery`, `Car`. |
 | `ai` | `AIDriver` (velocity-frame Pure Pursuit + curvature-tracking integral loop, overtaking and side-by-side awareness), `RacingLine`, `SpeedProfile` (banked-corner speed limits with downforce + braking pass). |
 | `app` | `Main`, `RaceApp`, `RaceDirector` (per-tick order: track projection → draft → drivers → physics → laps), `PlayerInput`, `CameraController`, `Environment` (sky, sun, light probe, post-processing), `ColorGradeFilter`. |
 | `ui` | `Hud`: speed, RPM, gear, position, lap/last/best, lateral G, tire slip, standings, **DRAFT %**. |
@@ -78,14 +78,16 @@ golden-hour sunlight.
 | Script | Output |
 |---|---|
 | `blender/make_car.py` | `Models/Car/indycar.glb` (lofted monocoque, sidepods, airbox, airfoil wings, wishbones, driver) plus `wheel_front.glb` / `wheel_rear.glb` (lathe-turned slicks and rims); also saves `blender/indycar.blend` |
-| `blender/make_props.py` | grandstand module (stepped rows, crowd, cantilever roof, floodlights), timing tower, tents, light tower |
+| `blender/make_props.py` | grandstand module (open aluminium bleachers on a steel frame, crowd rows, sponsor banner board, cantilever roof with purlins, floodlights; the open back lets light through), timing tower, tents, light tower |
+| `blender/make_crowd.py` | `crowd_atlas.png`: four rows of seated spectators (clothes, caps, sunglasses, children, people cheering, empty seats) |
 | `blender/make_foliage.py` | trees and shrubs (oak, maple, spruce, young tree, shrub) built from alpha-tested leaf cards, plus the leaf atlas, bark textures and the distant tree-line texture |
-| `blender/make_textures.py` | tileable PBR textures: asphalt, painted wall, grass, chain link, crowd row, carbon fibre |
+| `blender/make_textures.py` | tileable PBR textures: asphalt, painted wall, grass, chain link, carbon fibre |
 | `blender/make_sky.py` | 4096×2048 equirectangular golden-hour sky (Cycles, physical sky with procedural cumulus) |
 
 ```
 blender --background --factory-startup --python blender/make_car.py
 blender --background --factory-startup --python blender/make_props.py
+blender --background --factory-startup --python blender/make_crowd.py
 blender --background --factory-startup --python blender/make_foliage.py
 blender --background --factory-startup --python blender/make_textures.py
 blender --background --factory-startup --python blender/make_sky.py
@@ -113,8 +115,9 @@ blender --background --factory-startup --python blender/make_sky.py
   - Screenshots: [in the race](docs/rubber-groove.png), [from above the Turn 1 apex](docs/rubber-groove-apex.png), [woods along the back straight](docs/woods-back-straight.png).
 
 How the game uses them:
-- **Car paint:** each car's paint and race number are drawn at runtime by `LiveryPainter`, using the livery UV layout written by `make_car.py`.
-- **Tires:** the sidewall lettering comes from `TireTexture`.
+- **Car paint:** each car's paint, race numbers and loud die-cut stickers for fictional sponsors are drawn at runtime by `LiveryPainter`. `SponsorArt` draws the stickers: 16 brands, each with its own neon colours, heavy outlined italic lettering (straight, arched or growing letter by letter) and a cartoon mascot, with black and neon edges grown around the letters and the mascot so the sticker follows their shape (no rectangular plates) (a tyre, flame, lightning bolt, oil or water drop, sun in shades, shark, robot or mountain). Everything is placed using the livery UV layout written by `make_car.py`. `BodyDetail` adds what every car shares: panel seams and fasteners (normal map), a glossy clear coat that goes rough where the car is dirty, and wear (road grime, rubber marbles, stone chips on the nose and front wing, soot at the back).
+- **Helmets:** `HelmetPainter` paints each driver's helmet in the car's colours (three designs, a sponsor brow strip, the race number on the back) for the helmet shell, tinted visor and headrest built in `make_car.py`.
+- **Tires:** `TireTexture` makes worn slicks: a scrubbed, grained tread with rubber pick-up near the shoulders and satin sidewalls with raised, worn lettering (albedo, normal and roughness maps).
 - **Rendering:** `PBRLighting` materials, with image-based lighting from the sky via `EnvironmentProbeControl`.
 - **Post-processing:** 4096 shadow maps, SSAO, light shafts, bloom, filmic tone mapping, a custom colour grade (`ColorGradeFilter`) and FXAA.
 

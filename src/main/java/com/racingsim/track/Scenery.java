@@ -55,10 +55,14 @@ public final class Scenery {
         materials.put("Concrete", Pbr.textured(assets, "Textures/Track/wall_albedo.png", "Textures/Track/wall_normal.png",
                 "Textures/Track/wall_rough.png", 0f, 1f));
         Material crowd = Pbr.material(assets, ColorRGBA.White, 0f, 0.9f);
-        crowd.setTexture("BaseColorMap", Pbr.texture(assets, "Textures/Track/crowd_row.png", true));
+        crowd.setTexture("BaseColorMap", Pbr.texture(assets, "Textures/Track/crowd_atlas.png", true));
         crowd.setFloat("AlphaDiscardThreshold", 0.5f);
         materials.put("Crowd", crowd);
         materials.put("Steel", Pbr.material(assets, new ColorRGBA(0.62f, 0.63f, 0.65f, 1), 0.9f, 0.35f));
+        materials.put("Alu", Pbr.material(assets, new ColorRGBA(0.74f, 0.75f, 0.77f, 1), 0.85f, 0.42f));
+        Material banner = Pbr.material(assets, ColorRGBA.White, 0f, 0.45f);
+        banner.setTexture("BaseColorMap", BannerTexture.create());
+        materials.put("Banner", banner);
         materials.put("Roof", Pbr.material(assets, new ColorRGBA(0.25f, 0.26f, 0.28f, 1), 0.4f, 0.55f));
         materials.put("Fascia", Pbr.material(assets, new ColorRGBA(0.07f, 0.20f, 0.58f, 1), 0.2f, 0.35f));
         materials.put("Glass", Pbr.material(assets, new ColorRGBA(0.10f, 0.13f, 0.16f, 1), 0.95f, 0.06f));
@@ -96,7 +100,7 @@ public final class Scenery {
                 String name = partName(g);
                 String key = name.contains("_") ? name.substring(0, name.indexOf('_')) : name;
                 Material m = materials.get(key);
-                if (key.equals("Concrete") || key.equals("Crowd") || key.equals("Roof")) {
+                if (key.equals("Concrete") || key.equals("Crowd") || key.equals("Roof") || key.equals("Banner")) {
                     // single-sided quads in the grandstand
                     m = key.equals("Concrete") ? materials.get("ConcreteTwoSided") : m;
                     m.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
@@ -135,15 +139,44 @@ public final class Scenery {
         return sp;
     }
 
+    /**
+     * Places a straight outside-facing module along the chord between sLo and sHi at offset d
+     * (in a turn), stretched a touch so neighbouring modules close up at the back.
+     */
+    private Spatial placeChord(Spatial template, float sLo, float sHi, float d) {
+        Spatial sp = template.clone(false);
+        Vector3f hi = track.centerline(sHi, new Vector3f()).addLocal(track.right(sHi, null).multLocal(d));
+        Vector3f lo = track.centerline(sLo, new Vector3f()).addLocal(track.right(sLo, null).multLocal(d));
+        hi.y = lo.y = 0;
+        Vector3f x = lo.subtract(hi);
+        float len = x.length();
+        x.divideLocal(len);
+        Vector3f z = x.cross(Vector3f.UNIT_Y);
+        sp.setLocalRotation(new Quaternion().fromAxes(x, Vector3f.UNIT_Y, z));
+        sp.setLocalTranslation(hi);
+        sp.setLocalScale(len / MODULE * 1.04f, 1f, 1f);
+        occupied.add(hi.add(lo).multLocal(0.5f));
+        return sp;
+    }
+
     public Node build() {
         Node root = new Node("Scenery");
         Node stands = new Node("Stands");
         Node trees = new Node("Trees");
 
         Spatial grandstand = load("grandstand.glb");
-        // front straight (both sides of the start/finish line) and back straight, outside the wall
-        for (float s = -460f; s < 460f; s += MODULE) {
+        // front straight: the whole straight, so the starting grid (which begins where the straight
+        // does) always has stands behind it; back straight: the middle section, outside the wall
+        for (float s = -STRAIGHT / 2; s + MODULE <= STRAIGHT / 2 + 1f; s += MODULE) {
             stands.attachChild(place(grandstand, wrapS(s + MODULE), 14f, true, 0, 1f));
+        }
+        // ...and a little way round the turns at either end, so the stands curve away with the wall
+        // instead of stopping dead where the straight ends (the menu camera sees that end)
+        for (int i = 1; i <= 3; i++) {
+            float sIn = -STRAIGHT / 2 - i * MODULE;
+            stands.attachChild(placeChord(grandstand, wrapS(sIn), wrapS(sIn + MODULE), 14f));
+            float sOut = STRAIGHT / 2 + (i - 1) * MODULE;
+            stands.attachChild(placeChord(grandstand, sOut, sOut + MODULE, 14f));
         }
         float backStart = STRAIGHT / 2 + 2 * TURN + CHUTE;
         for (float s = backStart + 160f; s < backStart + STRAIGHT - 160f; s += MODULE) {

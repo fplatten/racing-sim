@@ -46,6 +46,8 @@ def mat(name):
             "Tire": ((0.02, 0.02, 0.02, 1), 0.0, 0.8),
             "Rim": ((0.05, 0.05, 0.055, 1), 0.9, 0.3),
             "Hub": ((0.75, 0.6, 0.2, 1), 1.0, 0.3),
+            "Lip": ((0.6, 0.6, 0.62, 1), 1.0, 0.25),
+            "Pad": ((0.03, 0.03, 0.035, 1), 0.0, 0.9),
         }
         c, m, r = presets[name]
         MATS[name] = principled(name, c, m, r)
@@ -137,7 +139,7 @@ def box(name, center, size, material, rot=None):
     obj.scale = size
     if rot:
         obj.rotation_euler = rot
-    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)   # world-space verts for livery_uv
     obj.data.materials.append(mat(material))
     return obj
 
@@ -219,8 +221,9 @@ def tube(name, p0, p1, radius_a, radius_b, material, ring=10):
     return make_object(name, verts, faces, material, [True] * ring + [False, False])
 
 
-def lathe(name, profile, material, segments=64, uv_band=True):
-    """Revolve (radius, x) profile points around the X axis. UV: u = angle, v = profile parameter."""
+def lathe(name, profile, material, segments=64, uv_band=True, v_values=None):
+    """Revolve (radius, x) profile points around the X axis. UV: u = angle, v = profile parameter
+    (arc length, or the explicit v_values)."""
     verts, faces, uvs = [], [], []
     n = len(profile)
     # cumulative length for v
@@ -228,6 +231,8 @@ def lathe(name, profile, material, segments=64, uv_band=True):
     for i in range(1, n):
         acc.append(acc[-1] + math.dist(profile[i - 1], profile[i]))
     total = acc[-1]
+    if v_values is not None:
+        acc, total = list(v_values), 1.0
     for s in range(segments + 1):
         th = 2 * math.pi * s / segments
         for (r, x) in profile:
@@ -414,23 +419,8 @@ def build_body():
         parts.append(tube("Carbon_MirrorStalk", (side * 0.30, -0.58, 0.55), (side * 0.44, -0.58, 0.58),
                           0.008, 0.012, "Carbon"))
 
-    # driver: helmet + visor + steering wheel
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=32, ring_count=16, radius=0.135, location=(0, -0.28, 0.715))
-    helmet = bpy.context.active_object
-    helmet.name = "Helmet"
-    helmet.scale = (0.95, 1.08, 1.0)
-    bpy.ops.object.transform_apply(scale=True)
-    helmet.data.materials.append(mat("Helmet"))
-    bpy.ops.object.shade_smooth()
-    parts.append(helmet)
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=32, ring_count=16, radius=0.128, location=(0, -0.295, 0.72))
-    visor = bpy.context.active_object
-    visor.name = "Visor"
-    visor.scale = (0.97, 1.08, 0.36)
-    bpy.ops.object.transform_apply(scale=True)
-    visor.data.materials.append(mat("Visor"))
-    bpy.ops.object.shade_smooth()
-    parts.append(visor)
+    # driver: helmet (shell + chin bar, separate tinted visor) in a padded headrest
+    parts += build_helmet()
     bpy.ops.mesh.primitive_torus_add(major_radius=0.13, minor_radius=0.014, location=(0, -0.62, 0.58),
                                      rotation=(math.radians(70), 0, 0))
     wheel = bpy.context.active_object
@@ -461,26 +451,145 @@ def build_body():
     return parts
 
 
+
+# ============================================================================ helmet
+HELMET_C = Vector((0.0, -0.28, 0.715))
+HELMET_R = (0.128, 0.148, 0.140)            # half sizes: x (side), y (front/back), z
+
+
+def helmet_point(a, p, grow=0.0):
+    """Helmet surface: a = azimuth (0 = front, +pi/2 = car's left), p = polar angle from the crown.
+    The lower front bulges forward into a chin bar."""
+    rx, ry, rz = HELMET_R
+    chin = max(0.0, math.cos(a)) ** 2 * max(0.0, (p - 1.55) / 0.9) * 0.030
+    flat = 1.0 - 0.06 * math.sin(a) ** 2 * math.sin(p) ** 4          # slightly flatter flanks
+    sx = math.sin(p) * math.sin(a) * (rx * flat + grow)
+    sy = -math.sin(p) * math.cos(a) * (ry + chin + grow)
+    sz = math.cos(p) * (rz + grow)
+    return HELMET_C + Vector((sx, sy, sz))
+
+
+def helmet_bottom(a):
+    """Polar angle of the lower edge: low at the chin, higher at the neck."""
+    return 2.02 + 0.36 * ((math.cos(a) + 1) / 2) ** 1.5
+
+
+def fix_normals_outward(obj, centre):
+    """Flip faces whose normal points towards the centre (parametric surfaces)."""
+    mesh = obj.data
+    for poly in mesh.polygons:
+        if poly.normal.dot(poly.center - centre) < 0:
+            poly.flip()
+    mesh.update()
+
+
+def build_helmet():
+    na, npol = 64, 28
+    verts, faces, uvs = [], [], []
+    for i in range(na + 1):
+        a = -math.pi + 2 * math.pi * i / na
+        pb = helmet_bottom(a)
+        for j in range(npol + 1):
+            p = 1e-3 + (pb - 1e-3) * j / npol
+            verts.append(tuple(helmet_point(a, p)))
+            # u: 0.5 = front centre, 0.75 = car's left; v: 1 = crown (HelmetPainter uses this layout)
+            uvs.append((0.5 + a / (2 * math.pi), 1.0 - p / 2.4))
+    for i in range(na):
+        for j in range(npol):
+            k = i * (npol + 1) + j
+            faces.append((k, k + 1, k + npol + 2, k + npol + 1))
+    # neck cap: close the lower edge so no inside faces show
+    base = len(verts)
+    verts.append(tuple(HELMET_C + Vector((0, 0.01, -0.12))))
+    uvs.append((0.5, 0.0))
+    for i in range(na):
+        faces.append((base, i * (npol + 1) + npol, (i + 1) * (npol + 1) + npol))
+    shell = make_object("Helmet", verts, faces, "Helmet", recalc=False)
+    uv = shell.data.uv_layers.new(name="UVMap")
+    for poly in shell.data.polygons:
+        for li in poly.loop_indices:
+            uv.data[li].uv = uvs[shell.data.loops[li].vertex_index]
+    fix_normals_outward(shell, HELMET_C)
+
+    # visor: a curved tinted lens standing just proud of the shell over the eye port
+    nv_a, nv_p = 40, 12
+    a0, a1, p0, p1 = -1.12, 1.12, 1.30, 1.74
+    vverts, vfaces = [], []
+    for i in range(nv_a + 1):
+        a = a0 + (a1 - a0) * i / nv_a
+        edge = (abs(a) / a1) ** 6                    # rounded ends: the port narrows at the sides
+        pa = p0 + (p1 - p0) * 0.3 * edge
+        pb = p1 - (p1 - p0) * 0.3 * edge
+        for j in range(nv_p + 1):
+            p = pa + (pb - pa) * j / nv_p
+            vverts.append(tuple(helmet_point(a, p, 0.0045)))
+    for i in range(nv_a):
+        for j in range(nv_p):
+            k = i * (nv_p + 1) + j
+            vfaces.append((k, k + 1, k + nv_p + 2, k + nv_p + 1))
+    visor = make_object("Visor", vverts, vfaces, "Visor", recalc=False)
+    fix_normals_outward(visor, HELMET_C)
+
+    # padded headrest collar around the back and sides of the helmet
+    pad_v, pad_f = [], []
+    steps = 28
+    for i in range(steps + 1):
+        t = math.radians(-120 + 240 * i / steps)            # 0 = straight behind the helmet
+        d = Vector((math.sin(t), math.cos(t), 0))
+        for (r, z) in ((0.165, 0.50), (0.165, 0.665), (0.19, 0.69), (0.255, 0.675), (0.275, 0.50)):
+            q = Vector((0, -0.29, 0.0)) + d * r
+            q.z = z - 0.05 * (1 - math.cos(t)) * 0.5        # lower towards the cockpit sides
+            pad_v.append(tuple(q))
+    for i in range(steps):
+        for j in range(4):
+            k = i * 5 + j
+            pad_f.append((k, k + 5, k + 6, k + 1))
+    pad_f.append((4, 3, 2, 1, 0))
+    e = steps * 5
+    pad_f.append((e, e + 1, e + 2, e + 3, e + 4))
+    pad = make_object("Pad_Headrest", pad_v, pad_f, "Pad")
+    return [shell, visor, pad]
+
 # ============================================================================ wheels
 def build_wheel(prefix, width):
     r, rim_r = WHEEL_R, 0.205
     hw = width / 2
-    sh = 0.05                                                     # shoulder radius
-    profile = [(rim_r + 0.005, -hw + 0.03), (rim_r + 0.03, -hw + 0.005), (r - 0.07, -hw - 0.006)]
-    for k in range(7):                                            # outer shoulder arc
-        a = math.pi / 2 * k / 6
-        profile.append((r - sh + sh * math.sin(a), -hw + sh - sh * math.cos(a)))
-    profile += [(r, -hw * 0.3), (r, hw * 0.3)]
-    for k in range(7):
-        a = math.pi / 2 * (6 - k) / 6
-        profile.append((r - sh + sh * math.sin(a), hw - sh + sh * math.cos(a)))
-    profile += [(r - 0.07, hw + 0.006), (rim_r + 0.03, hw - 0.005), (rim_r + 0.005, hw - 0.03)]
-    tire = lathe(prefix + "Tire", profile, "Tire", segments=72)
+    sh = 0.075                                                    # shoulder radius (rounded slick shoulder)
+    bulge = 0.012                                                 # sidewall bows out past the bead
+    # profile from the inner bead (-x) over the tread to the outer bead (+x), with explicit v:
+    #   0.00-0.30 inner sidewall, 0.30-0.38 inner shoulder, 0.38-0.62 tread,
+    #   0.62-0.70 outer shoulder, 0.70-1.00 outer sidewall (TireTexture uses the same bands)
+    def side(sign, v_from, v_to):
+        seq = []
+        for k in range(9):
+            f = k / 8                                             # 0 = bead, 1 = start of the shoulder
+            rad = rim_r + 0.004 + (r - sh - rim_r - 0.004) * f
+            x = sign * (hw - 0.03 + (0.03 + bulge) * math.sin(math.pi / 2 * min(1.0, f * 1.25)))
+            seq.append(((rad, x), v_from + (v_to - v_from) * f))
+        return seq
+
+    def shoulder(sign, v_from, v_to):
+        seq = []
+        for k in range(9):
+            ang = math.pi / 2 * k / 8                             # 0 = sidewall tangent, pi/2 = tread
+            rad = r - sh + sh * math.sin(ang)
+            x = sign * (hw + bulge - (sh + bulge) * (1 - math.cos(ang)))
+            seq.append(((rad, x), v_from + (v_to - v_from) * k / 8))
+        return seq
+
+    inner = side(-1, 0.0, 0.30) + shoulder(-1, 0.30, 0.38)[1:]
+    outer = (side(1, 1.0, 0.70) + shoulder(1, 0.70, 0.62)[1:])[::-1]
+    x0, x1 = inner[-1][0][1], outer[0][0][1]
+    tread = [((r, x0 + (x1 - x0) * k / 6), 0.38 + 0.24 * k / 6) for k in range(1, 6)]
+    seq = inner + tread + outer
+    tire = lathe(prefix + "Tire", [q for q, _ in seq], "Tire", segments=96, v_values=[v for _, v in seq])
 
     rim_profile = [(rim_r + 0.012, -hw + 0.02), (rim_r + 0.012, -hw + 0.035), (rim_r - 0.005, -hw + 0.04),
                    (rim_r - 0.005, hw - 0.04), (rim_r + 0.012, hw - 0.035), (rim_r + 0.012, hw - 0.02),
                    (rim_r - 0.012, hw - 0.02), (rim_r - 0.015, hw - 0.06), (0.07, hw - 0.07), (0.07, hw - 0.12)]
     rim = lathe(prefix + "Rim", rim_profile, "Rim", segments=48)
+    lip = lathe(prefix + "Lip", [(rim_r + 0.013, hw - 0.018), (rim_r + 0.006, hw - 0.012),
+                                 (rim_r - 0.010, hw - 0.016), (rim_r - 0.013, hw - 0.024)], "Lip", segments=72)
     objs = [tire, rim]
     for k in range(10):                                           # spokes on the outer face
         a = 2 * math.pi * k / 10
@@ -499,7 +608,7 @@ def build_wheel(prefix, width):
         o.select_set(True)
     bpy.context.view_layer.objects.active = rim
     bpy.ops.object.join()
-    return [tire, rim]
+    return [tire, rim, lip]
 
 
 def join_by_material(objs):
@@ -525,7 +634,9 @@ def main():
     reset_scene()
     body = build_body()
     for o in body:
-        if o.name.startswith("Livery"):
+        if o.name == "Helmet":
+            pass
+        elif o.name.startswith("Livery"):
             livery_uv(o)
         elif o.name.startswith(("Carbon", "Susp")):
             simple_uv(o, 10.0)

@@ -11,7 +11,6 @@ import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import com.jme3.texture.Texture;
 import com.jme3.util.mikktspace.MikktspaceTangentGenerator;
 import com.racingsim.track.Pbr;
 
@@ -30,28 +29,38 @@ public final class CarModelFactory {
     private final Spatial bodyTemplate;
     private final Spatial wheelFrontTemplate;
     private final Spatial wheelRearTemplate;
-    private final Material carbon, black, suspension, visor, light, tire, rim, hub;
+    private final Material carbon, black, suspension, visor, light, tire, rim, hub, lip, pad;
+    private final BodyDetail detail;
 
     public CarModelFactory(AssetManager assets) {
         this.assets = assets;
         bodyTemplate = assets.loadModel("Models/Car/indycar.glb");
         wheelFrontTemplate = assets.loadModel("Models/Car/wheel_front.glb");
         wheelRearTemplate = assets.loadModel("Models/Car/wheel_rear.glb");
-        MikktspaceTangentGenerator.generate(bodyTemplate);   // carbon parts are normal mapped
+        MikktspaceTangentGenerator.generate(bodyTemplate);   // paint and carbon are normal mapped
+        MikktspaceTangentGenerator.generate(wheelFrontTemplate);
+        MikktspaceTangentGenerator.generate(wheelRearTemplate);
+        detail = BodyDetail.get();
 
         carbon = Pbr.textured(assets, "Textures/Car/carbon_albedo.png", "Textures/Car/carbon_normal.png", null, 0.25f, 0.28f);
         black = Pbr.material(assets, new ColorRGBA(0.02f, 0.02f, 0.02f, 1), 0f, 0.7f);
         suspension = Pbr.material(assets, new ColorRGBA(0.08f, 0.08f, 0.09f, 1), 0.6f, 0.35f);
-        visor = Pbr.material(assets, new ColorRGBA(0.05f, 0.05f, 0.07f, 1), 0.9f, 0.05f);
+        // smoked visor: dark, mirror-smooth, a hint of iridium tint
+        visor = Pbr.material(assets, new ColorRGBA(0.10f, 0.11f, 0.16f, 1), 0.75f, 0.04f);
+        pad = Pbr.material(assets, new ColorRGBA(0.05f, 0.05f, 0.055f, 1), 0f, 0.92f);
         light = Pbr.material(assets, new ColorRGBA(0.6f, 0.02f, 0.02f, 1), 0f, 0.3f);
         light.setColor("Emissive", new ColorRGBA(1f, 0.05f, 0.02f, 1));
-        tire = Pbr.material(assets, ColorRGBA.White, 0f, 0.82f);
-        Texture tireTex = TireTexture.create();
-        tire.setTexture("BaseColorMap", tireTex);
-        rim = Pbr.material(assets, new ColorRGBA(0.10f, 0.10f, 0.11f, 1), 0.85f, 0.32f);
-        hub = Pbr.material(assets, new ColorRGBA(0.85f, 0.68f, 0.25f, 1), 1f, 0.3f);
+        TireTexture.Maps tm = TireTexture.create();
+        tire = Pbr.material(assets, ColorRGBA.White, 0f, 1f);
+        tire.setTexture("BaseColorMap", tm.albedo());
+        tire.setTexture("NormalMap", tm.normal());
+        tire.setFloat("NormalType", 1.0f);
+        tire.setTexture("MetallicRoughnessMap", tm.aoRoughMetal());
+        rim = Pbr.material(assets, new ColorRGBA(0.13f, 0.13f, 0.14f, 1), 0.85f, 0.38f);
+        hub = Pbr.material(assets, new ColorRGBA(0.62f, 0.52f, 0.28f, 1), 1f, 0.32f);
+        lip = Pbr.material(assets, new ColorRGBA(0.78f, 0.78f, 0.80f, 1), 1f, 0.22f);   // machined rim flange
         // lathe-turned wheel surfaces are single sided: render both faces
-        for (Material m : new Material[]{tire, rim, hub}) {
+        for (Material m : new Material[]{tire, rim, hub, lip}) {
             m.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
         }
     }
@@ -59,10 +68,16 @@ public final class CarModelFactory {
     public CarModel build(VehicleSpec spec, Livery livery, float rideHeight, boolean highDetail) {
         Node root = new Node("CarModel-" + livery.name());
 
-        Material paint = Pbr.material(assets, ColorRGBA.White, 0.05f, 0.16f);
+        // clear-coated paint: roughness, panel-seam AO and the seam / chip normal map are shared
+        Material paint = Pbr.material(assets, ColorRGBA.White, 0f, 1f);
         paint.setTexture("BaseColorMap", LiveryPainter.paint(livery, highDetail ? 2048 : 1024));
+        paint.setTexture("MetallicRoughnessMap", detail.aoRoughMetal);
+        paint.setBoolean("AoPackedInMRMap", true);
+        paint.setTexture("NormalMap", detail.normal);
+        paint.setFloat("NormalType", 1.0f);
         paint.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
-        Material helmet = Pbr.material(assets, livery.accent(), 0.1f, 0.12f);
+        Material helmet = Pbr.material(assets, ColorRGBA.White, 0f, 0.10f);
+        helmet.setTexture("BaseColorMap", HelmetPainter.paint(livery));
 
         Spatial body = bodyTemplate.clone(false);
         body.depthFirstTraversal(s -> {
@@ -121,6 +136,8 @@ public final class CarModelFactory {
         if (name.startsWith("Suspension") || name.startsWith("Susp")) return suspension;
         if (name.startsWith("Helmet")) return helmet;
         if (name.startsWith("Visor")) return visor;
+        if (name.startsWith("Pad")) return pad;
+        if (name.startsWith("Lip") || name.contains("Lip")) return lip;
         if (name.startsWith("Light")) return light;
         if (name.startsWith("Tire") || name.contains("Tire")) return tire;
         if (name.startsWith("Hub") || name.contains("Hub")) return hub;

@@ -129,55 +129,7 @@ def chainlink(size=512, diamonds=8):
     save_png("chainlink", rgba, out_path(T, "chainlink.png"))
 
 
-# ----------------------------------------------------------------------------- crowd row (alpha)
-def crowd_row(w=2048, h=128, people=40):
-    """One row of seated spectators (tile = 40 seats = 20 m, 1.0 m tall), alpha-cut silhouettes
-    in front of blue seat backs. Row 0 of the image is the top of the strip."""
-    img = np.zeros((h, w, 4))
-    yy, xx = np.mgrid[0:h, 0:w]
-    seat_w = w / people
-    skin = np.array([[0.93, 0.76, 0.62], [0.80, 0.58, 0.42], [0.55, 0.38, 0.26], [0.36, 0.24, 0.16],
-                     [0.98, 0.84, 0.72]])
-    shirts = np.array([[0.80, 0.12, 0.12], [0.92, 0.92, 0.92], [0.15, 0.22, 0.55], [0.08, 0.08, 0.09],
-                       [0.85, 0.70, 0.18], [0.20, 0.45, 0.25], [0.55, 0.55, 0.58], [0.35, 0.28, 0.22],
-                       [0.95, 0.95, 0.95], [0.25, 0.45, 0.75], [0.12, 0.12, 0.30], [0.60, 0.15, 0.20]])
-    # seat backs along the bottom of the strip
-    seat = (yy > h * 0.62)
-    for k in range(people):
-        cx = (k + 0.5) * seat_w
-        back = seat & (np.abs(xx - cx) < seat_w * 0.42)
-        img[back] = (0.06, 0.16, 0.42, 1)
-    for k in range(people):
-        if rng.random() < 0.1:
-            continue
-        cx = (k + 0.5 + rng.uniform(-0.15, 0.15)) * seat_w
-        lean = rng.uniform(-0.05, 0.05) * seat_w
-        shoulders = seat_w * rng.uniform(0.34, 0.42)
-        torso_top = h * rng.uniform(0.38, 0.46)
-        shirt = shirts[rng.integers(len(shirts))] * rng.uniform(0.75, 1.0)
-        # torso: rounded trapezoid narrowing towards the bottom
-        t = np.clip((yy - torso_top) / (h * 0.6), 0, 1)
-        half = shoulders * (1 - 0.18 * t)
-        torso = (yy > torso_top) & (np.abs(xx - cx - lean * t) < half)
-        img[torso, :3] = shirt[None, :] * (0.85 + 0.15 * (1 - t[torso]))[:, None]
-        img[torso, 3] = 1
-        # arms (slightly darker) at the sides
-        arms = (yy > torso_top + h * 0.05) & (yy < h * 0.85) & (np.abs(np.abs(xx - cx) - half) < seat_w * 0.06)
-        img[arms, :3] = shirt * 0.7
-        img[arms, 3] = 1
-        hr = seat_w * rng.uniform(0.15, 0.18)
-        hy = torso_top - hr * 0.95
-        head = (xx - cx) ** 2 + ((yy - hy) * 0.9) ** 2 < hr * hr
-        img[head, :3] = skin[rng.integers(len(skin))]
-        img[head, 3] = 1
-        r = rng.random()
-        if r < 0.35:                                             # cap
-            cap = head & (yy < hy - hr * 0.2)
-            img[cap, :3] = shirts[rng.integers(len(shirts))]
-        elif r < 0.6:                                            # hair
-            hair = head & (yy < hy - hr * 0.35)
-            img[hair, :3] = np.array([0.08, 0.06, 0.05]) + rng.uniform(0, 0.3)
-    save_png("crowd_row", np.clip(img, 0, 1), out_path(T, "crowd_row.png"))
+# The grandstand crowd atlas is made by make_crowd.py.
 
 
 # ----------------------------------------------------------------------------- carbon fibre
@@ -197,6 +149,5 @@ if __name__ == "__main__":
     concrete_wall()
     grass()
     chainlink()
-    crowd_row()
     carbon()
     print("TEXTURES DONE")

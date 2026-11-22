@@ -26,6 +26,64 @@ public final class SoundSynth {
      * @param brightness 0 = deep / boomy, 1 = screaming high-rpm character
      */
     public static float[] engine(float rpm, float brightness, long seed) {
+        return engine(rpm, brightness, seed, 0.4);
+    }
+
+    /**
+     * An opponent's engine heard from outside the car: a deep, rough V8 rumble rather than the
+     * in-car scream. Built firing by firing over a loop of whole engine cycles: every exhaust pulse
+     * (a damped low body resonance plus a little rasp) gets its own small timing, strength and
+     * resonance variation, as real combustion does, on top of a fixed per-cylinder unevenness that
+     * gives the once-per-cycle lope. Because the loop is not perfectly periodic, several cars at
+     * nearly the same rpm blend into a roar instead of beating against each other (a warble).
+     * Low exhaust roar fills in underneath; the top end is rolled off as distance and bodywork do.
+     */
+    public static float[] exteriorEngine(float rpm, long seed) {
+        Random rnd = new Random(seed * 17 + 3);
+        int spc = (int) Math.round(RATE * 2.0 / (rpm / 60.0));          // samples per 720 degrees
+        int cycles = Math.max(1, (int) Math.round(1.5 * RATE / spc));
+        int n = spc * cycles;
+        int cylinders = 8, firings = cylinders * cycles;
+        double interval = (double) n / firings;
+        double[] cylAmp = new double[cylinders], cylRes = new double[cylinders];
+        for (int c = 0; c < cylinders; c++) {
+            cylAmp[c] = 1.0 + 0.7 * (rnd.nextDouble() - 0.5);
+            cylRes[c] = 1.0 + 0.10 * (rnd.nextDouble() - 0.5);
+        }
+        double body = 150 + 40 * rnd.nextDouble();                       // exhaust body resonance (Hz)
+        double rasp = 700 + 200 * rnd.nextDouble();
+        int len = (int) (0.03 * RATE);
+        float[] e = new float[n];
+        for (int j = 0; j < firings; j++) {
+            int c = j % cylinders;
+            double start = j * interval + (rnd.nextDouble() - 0.5) * 0.16 * interval;
+            double a = cylAmp[c] * (0.9 + 0.2 * rnd.nextDouble());
+            double fb = body * cylRes[c] * (1 + 0.08 * (rnd.nextDouble() - 0.5));
+            double fr = rasp * (1 + 0.15 * (rnd.nextDouble() - 0.5));
+            int i0 = (int) Math.ceil(start);
+            for (int k = 0; k < len; k++) {
+                double t = (i0 + k - start) / RATE;
+                double v = Math.exp(-t / 0.0050) * Math.sin(2 * Math.PI * fb * t)
+                        + 0.22 * Math.exp(-t / 0.0011) * Math.sin(2 * Math.PI * fr * t);
+                e[Math.floorMod(i0 + k, n)] += (float) (a * v);
+            }
+        }
+        lowPass(e, 2000);
+        lowPass(e, 2000);
+        normalize(e, 1f);
+        float[] roar = loopNoise(n, rnd);
+        lowPass(roar, 260);
+        lowPass(roar, 260);
+        normalize(roar, 1f);
+        float[] out = new float[n];
+        for (int i = 0; i < n; i++) out[i] = 0.9f * e[i] + 0.10f * roar[i];
+        saturate(out, 1.5f);
+        highPass(out, 30);
+        normalize(out, 0.9f);
+        return out;
+    }
+
+    private static float[] engine(float rpm, float brightness, long seed, double unevenness) {
         Random rnd = new Random(seed);
         double crankHz = rpm / 60.0;
         int samplesPerCycle = (int) Math.round(RATE * 2.0 / crankHz);   // 720 degrees
@@ -39,7 +97,7 @@ public final class SoundSynth {
         int cylinders = 8;
         double[] amp = new double[cylinders], offset = new double[cylinders], res = new double[cylinders];
         for (int c = 0; c < cylinders; c++) {
-            amp[c] = 0.8 + 0.4 * rnd.nextDouble();
+            amp[c] = 1.0 + unevenness * (rnd.nextDouble() - 0.5);
             offset[c] = (rnd.nextDouble() - 0.5) * 0.04;                  // fraction of a firing interval
             res[c] = 1.0 + (rnd.nextDouble() - 0.5) * 0.12;
         }

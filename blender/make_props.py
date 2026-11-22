@@ -7,7 +7,8 @@ Conventions (Blender frame, exported to glTF Y-up):
               front wall base at y = 0, z = 0.
   others:     centred on the origin, z = 0 ground.
 Object name prefixes tell the game which material to apply:
-  Concrete_, Crowd_, Steel_, Roof_, Fascia_, Glass_, Paint_, Screen_, Lamp_, Canvas_  (trees: make_foliage.py)
+  Concrete_, Crowd_, Steel_, Alu_, Banner_, Roof_, Fascia_, Glass_, Paint_, Screen_, Lamp_, Canvas_
+  (trees: make_foliage.py)
 """
 import math
 import os
@@ -105,6 +106,11 @@ def join(objs, name):
 
 # ============================================================================ grandstand
 def grandstand():
+    """Open aluminium bleachers on a steel frame (like the big oval-track grandstands): a concrete
+    front wall with a sponsor banner, 16 rows of footboards and seat planks with open risers, raker
+    beams on columns with cross-bracing underneath, an open back with a guard rail, and the
+    cantilevered roof. Sky and sunlight show through the frame, between the rows and under the
+    roof, so from behind (the back straight) it is not a solid block."""
     clear()
     length = 40.0
     rows, tread, rise, base_h = 16, 0.8, 0.48, 3.2
@@ -114,50 +120,82 @@ def grandstand():
     concrete = mat("Concrete", (0.6, 0.6, 0.58, 1), 0, 0.8)
     crowd = mat("Crowd", (1, 1, 1, 1), 0, 0.9)
     steel = mat("Steel", (0.55, 0.56, 0.58, 1), 0.9, 0.35)
+    alu = mat("Alu", (0.75, 0.76, 0.78, 1), 0.85, 0.45)
     roof = mat("Roof", (0.22, 0.23, 0.25, 1), 0.3, 0.6)
     fascia = mat("Fascia", (0.06, 0.18, 0.55, 1), 0.2, 0.35)
+    banner = mat("Banner", (1, 1, 1, 1), 0, 0.5)
     lamp = mat("Lamp", (1.0, 0.95, 0.85, 1), 0, 0.2)
     objs = []
 
-    # front wall + advertising band
+    # front wall with a sponsor banner board (BannerTexture paints it in the game)
     objs.append(box("Concrete_FrontWall", (length / 2, -0.3, base_h / 2), (length / 2, 0.3, base_h / 2), concrete))
-    objs.append(box("Fascia_FrontBand", (length / 2, -0.62, base_h - 0.55), (length / 2, 0.02, 0.45), fascia))
-    # seating: real stepped rows - tread + riser in concrete, a row of seated spectators per step
-    row_tile = 20.0                                                 # crowd_row.png = 40 seats over 20 m
+    objs.append(quad("Banner_Front", (0, -0.615, base_h - 1.05), (length, -0.615, base_h - 1.05),
+                     (length, -0.615, base_h - 0.1), (0, -0.615, base_h - 0.1), banner))
+    objs.append(box("Concrete_Walkway", (length / 2, 0.3, base_h - 0.05), (length / 2, 0.3, 0.05), concrete))
+
+    # bleachers: footboard + seat plank per row, open risers; one crowd strip per row drawn from
+    # four atlas variants (crowd_atlas.png: 4 strips, 40 seats = 20 m each)
+    row_tile = 20.0
+    half_texel = 0.5 / 512
     for r in range(rows):
-        y0, y1 = r * tread, (r + 1) * tread
+        y0 = r * tread
         z = base_h + r * rise
-        objs.append(quad("Concrete_Riser", (0, y0, z), (length, y0, z), (length, y0, z + rise), (0, y0, z + rise),
-                         concrete, ((0, 0), (length / 4, 0), (length / 4, 0.12), (0, 0.12))))
-        objs.append(quad("Concrete_Tread", (0, y0, z + rise), (length, y0, z + rise), (length, y1, z + rise),
-                         (0, y1, z + rise), concrete, ((0, 0.2), (length / 4, 0.2), (length / 4, 0.4), (0, 0.4))))
-        yp = y0 + tread * 0.55
         zp = z + rise
+        objs.append(box("Alu_Foot", (length / 2, y0 + 0.17, zp - 0.02), (length / 2, 0.16, 0.02), alu))
+        objs.append(box("Alu_Seat", (length / 2, y0 + 0.60, zp + 0.42), (length / 2, 0.15, 0.02), alu))
+        objs.append(box("Alu_Kick", (length / 2, y0 + 0.02, zp - 0.10), (length / 2, 0.01, 0.08), alu))
+        yp = y0 + tread * 0.55
         off = (r * 0.37) % 1.0                                      # stagger the pattern per row
+        k = random.randrange(4)
+        vb, vt = 1 - (k + 1) / 4 + half_texel, 1 - k / 4 - half_texel
         objs.append(quad("Crowd_Row", (0, yp, zp), (length, yp, zp), (length, yp, zp + 1.0), (0, yp, zp + 1.0),
-                         crowd, ((off, 0), (off + length / row_tile, 0), (off + length / row_tile, 1), (off, 1))))
-    # stepped concrete underneath (side silhouettes) + back wall
-    objs.append(quad("Concrete_Back", (0, depth, 0), (length, depth, 0), (length, depth, roof_h), (0, depth, roof_h),
-                     concrete, ((0, 0), (10, 0), (10, 4), (0, 4))))
-    for x in (0.0, length):
-        objs.append(mesh_obj("Concrete_Side", [(x, 0, 0), (x, depth, 0), (x, depth, top_h), (x, 0, base_h)],
-                             [(0, 1, 2, 3)], concrete, [(0, 0), (3, 0), (3, 3), (0, 1)]))
-    # roof: columns at the back, cantilever trusses, roof sheet, fascia, lamps
+                         crowd, ((off, vb), (off + length / row_tile, vb), (off + length / row_tile, vt), (off, vt))))
+
+    # steel frame under the deck: raker beams on columns, cross-braced, tied together along the stand
+    col_y = (depth * 0.34, depth * 0.67, depth - 0.1)
+    def raker_z(y):
+        return base_h - 0.15 + (top_h - base_h) * y / depth
+    for i in range(8):
+        x = 2.5 + i * 5.0
+        objs.append(beam("Steel_Raker", (x, 0.0, base_h - 0.15), (x, depth, top_h - 0.15), 0.11, steel))
+        prev = None
+        for cy in col_y:
+            objs.append(beam("Steel_Col", (x, cy, 0.0), (x, cy, raker_z(cy)), 0.10, steel))
+            if prev is not None and i % 2 == 0:                    # X-bracing in alternate frames
+                objs.append(beam("Steel_Brace", (x, prev, 0.3), (x, cy, raker_z(cy) - 0.3), 0.04, steel))
+                objs.append(beam("Steel_Brace", (x, cy, 0.3), (x, prev, raker_z(prev) - 0.3), 0.04, steel))
+            prev = cy
+    for cy in col_y:
+        objs.append(beam("Steel_Tie", (0, cy, raker_z(cy) - 0.12), (length, cy, raker_z(cy) - 0.12), 0.07, steel))
+        objs.append(beam("Steel_Tie", (0, cy, 1.2), (length, cy, 1.2), 0.05, steel))
+    for i in range(4):                                             # longitudinal bracing bays
+        x0, x1 = i * 10.0 + 2.5, i * 10.0 + 7.5
+        cy = col_y[-1]
+        objs.append(beam("Steel_Brace", (x0, cy, 1.2), (x1, cy, raker_z(cy) - 0.2), 0.04, steel))
+    # open back: guard rail along the top row
+    objs.append(box("Steel_BackRail", (length / 2, depth + 0.05, top_h + 1.1), (length / 2, 0.03, 0.03), steel))
+    objs.append(box("Steel_BackRail", (length / 2, depth + 0.05, top_h + 0.6), (length / 2, 0.02, 0.02), steel))
+    for i in range(21):
+        objs.append(box("Steel_RailPost", (i * 2.0, depth + 0.05, top_h + 0.55), (0.03, 0.03, 0.55), steel))
+
+    # roof: columns at the back, cantilever trusses, purlins, roof sheet, fascia, lamps
     roof_front_y = -2.0
     for i in range(5):
         x = i * 10.0 if i < 4 else length - 0.2
         x = max(0.2, min(length - 0.2, x))
         objs.append(box("Steel_Column", (x, depth + 0.3, roof_h / 2), (0.25, 0.25, roof_h / 2), steel))
-        # cantilever truss: top chord, bottom chord, diagonals
         top0, top1 = Vector((x, depth + 0.3, roof_h + 1.2)), Vector((x, roof_front_y, roof_h + 0.3))
         bot0, bot1 = Vector((x, depth + 0.3, roof_h - 0.6)), Vector((x, roof_front_y, roof_h))
         for a, b in ((top0, top1), (bot0, bot1)):
             objs.append(beam("Steel_Chord", a, b, 0.12, steel))
         for k in range(6):
             t0, t1 = k / 6, (k + 1) / 6
-            a = bot0.lerp(bot1, t0)
-            b = top0.lerp(top1, t1)
-            objs.append(beam("Steel_Diag", a, b, 0.06, steel))
+            objs.append(beam("Steel_Diag", bot0.lerp(bot1, t0), top0.lerp(top1, t1), 0.06, steel))
+    for k in range(7):                                             # purlins under the roof sheet
+        t = (k + 0.5) / 7
+        y = (depth + 0.6) + (roof_front_y - (depth + 0.6)) * t
+        zr = (roof_h + 1.25) + ((roof_h + 0.35) - (roof_h + 1.25)) * t - 0.12
+        objs.append(beam("Steel_Purlin", (0, y, zr), (length, y, zr), 0.06, steel))
     objs.append(quad("Roof_Sheet", (0, depth + 0.6, roof_h + 1.25), (length, depth + 0.6, roof_h + 1.25),
                      (length, roof_front_y, roof_h + 0.35), (0, roof_front_y, roof_h + 0.35), roof,
                      ((0, 0), (8, 0), (8, 3), (0, 3))))
@@ -165,7 +203,6 @@ def grandstand():
     for i in range(8):
         x = 2.5 + i * 5.0
         objs.append(box("Lamp_Roof", (x, roof_front_y + 0.3, roof_h - 0.15), (0.35, 0.2, 0.08), lamp))
-    # floodlight masts on the roof (like the reference)
     for x in (5.0, 25.0):
         objs.append(cylinder("Steel_Mast", (x, depth - 1.0, roof_h + 5.0), 0.18, 8.0, steel, 10))
         objs.append(box("Steel_MastHead", (x, depth - 1.0, roof_h + 9.2), (0.9, 0.15, 0.5), steel))

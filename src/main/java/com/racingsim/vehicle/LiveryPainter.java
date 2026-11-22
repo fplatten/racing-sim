@@ -95,7 +95,13 @@ public final class LiveryPainter {
             s.setTransform(base);
             // numbers: sidepod + rear wing endplate
             drawNumber(s, livery.number(), t, 0.62, 0.30, 0.20, 0, numberFill, numberEdge);
-            drawNumber(s, livery.number(), t, 2.29, 0.80, 0.34, 0, numberFill, numberEdge);
+            drawNumber(s, livery.number(), t, 2.29, 0.885, 0.25, 0, numberFill, numberEdge);
+            // sponsor decals: sidepod flank, nose, rear endplate foot, cockpit-side contingency patches
+            decal(s, t, sponsor(livery, 0), -0.19, 0.330, 0.200, 1.05, 0, true);    // sidepod flank
+            decal(s, t, sponsor(livery, 1), -1.72, 0.300, 0.125, 0.66, 0, true);    // nose
+            decal(s, t, sponsor(livery, 0), 2.28, 0.665, 0.130, 0.60, 0, true);     // rear wing endplate
+            decal(s, t, sponsor(livery, 2), 0.72, 0.640, 0.105, 0.56, 0, true);     // engine cover
+            contingency(s, t, -1.02, 0.455, side == 1);
             s.dispose();
         }
 
@@ -142,9 +148,17 @@ public final class LiveryPainter {
         s.setColor(accent);
         s.fill(new Rectangle2D.Double(2.44, -0.56, 0.05, 1.12));
         s.setTransform(base);
-        drawNumber(s, livery.number(), top, -1.78, 0.0, 0.17, Math.PI / 2, numberFill, numberEdge);
+        drawNumber(s, livery.number(), top, -1.86, 0.0, 0.21, Math.PI / 2, numberFill, numberEdge);
+        // rear wing: big sponsor across the main plane, readable from behind (up = forward)
+        decal(s, top, sponsor(livery, 0), 2.27, 0.0, 0.25, 0.98, -Math.PI / 2, true);
+        // front wing main planes and sidepod tops
+        for (int sgn = -1; sgn <= 1; sgn += 2) {
+            decal(s, top, sponsor(livery, 2), -2.30, sgn * 0.55, 0.17, 0.74, -Math.PI / 2, true);
+            decal(s, top, sponsor(livery, 1), -0.05, sgn * 0.58, 0.20, 0.92, sgn > 0 ? 0 : Math.PI, true);
+        }
         s.dispose();
         g.dispose();
+        weather(img);
 
         Image image = new AWTLoader().load(img, false);
         Texture2D tex = new Texture2D(image);
@@ -175,6 +189,88 @@ public final class LiveryPainter {
         g.draw(glyphs);
         g.setColor(fill);
         g.fill(glyphs);
+    }
+
+    // ------------------------------------------------------------------ sponsors, decals and wear
+
+    /** Fictional sponsors; each car gets a title sponsor and two associates. */
+    private static final String[] SPONSORS = java.util.Arrays.stream(SponsorArt.BRANDS).map(SponsorArt.Brand::name)
+            .toArray(String[]::new);
+
+    private static String sponsor(Livery livery, int slot) {
+        int h = Math.floorMod(livery.name().hashCode() * 31 + livery.number() * 7, SPONSORS.length);
+        return SPONSORS[(h + slot * 5) % SPONSORS.length];
+    }
+
+    /**
+     * A sponsor ad panel ({@link SponsorArt}) centred at car coordinates (a, b) of an island
+     * transform: heightMetres tall, maxLength metres long, rotated like text.
+     */
+    private static void decal(Graphics2D g, AffineTransform t, String sponsor, double a, double b,
+                              double heightMetres, double maxLength, double rotation, boolean mascot) {
+        double[] p = {a, b};
+        t.transform(p, 0, p, 0, 1);
+        double pxPerMetre = Math.abs(t.getScaleY());
+        SponsorArt.panel(g, SponsorArt.brand(sponsor), p[0], p[1], maxLength * pxPerMetre, heightMetres * pxPerMetre,
+                rotation, mascot);
+    }
+
+    /** A row of small die-cut contingency stickers (brakes / plugs / gears / seals) on the cockpit side. */
+    private static void contingency(Graphics2D g, AffineTransform t, double y0, double z, boolean mirrored) {
+        SponsorArt.Brand[] stickers = {
+                new SponsorArt.Brand("BRAKES", new Color(250, 250, 250), new Color(220, 20, 30), Color.BLACK, SponsorArt.Mascot.TIRE),
+                new SponsorArt.Brand("PLUGS", new Color(255, 215, 0), new Color(15, 15, 15), Color.BLACK, SponsorArt.Mascot.TIRE),
+                new SponsorArt.Brand("GEARS", new Color(255, 40, 160), new Color(255, 255, 255), Color.BLACK, SponsorArt.Mascot.TIRE),
+                new SponsorArt.Brand("SEALS", new Color(0, 200, 255), new Color(255, 240, 0), Color.BLACK, SponsorArt.Mascot.TIRE)};
+        double w = 0.10, h = 0.05;
+        double pxPerMetre = Math.abs(t.getScaleY());
+        for (int k = 0; k < stickers.length; k++) {
+            double[] p = {y0 + w / 2 + k * w, z};
+            t.transform(p, 0, p, 0, 1);
+            SponsorArt.panel(g, stickers[k], p[0], p[1], w * pxPerMetre, h * pxPerMetre, 0, false);
+        }
+    }
+
+    /** Blends the shared wear masks ({@link BodyDetail}) into the painted livery. */
+    private static void weather(BufferedImage img) {
+        BodyDetail d = BodyDetail.get();
+        int size = img.getWidth();
+        int n = BodyDetail.SIZE;
+        int step = n / size;
+        int[] row = new int[size];
+        for (int y = 0; y < size; y++) {
+            img.getRGB(0, y, size, 1, row, 0, size);
+            for (int x = 0; x < size; x++) {
+                float grime = 0, marbles = 0, chips = 0, soot = 0;
+                for (int sy = 0; sy < step; sy++) {                      // box-filter the masks down
+                    int base = (y * step + sy) * n + x * step;
+                    for (int sx = 0; sx < step; sx++) {
+                        grime += d.grime[base + sx];
+                        marbles += d.marbles[base + sx];
+                        chips += d.chips[base + sx];
+                        soot += d.soot[base + sx];
+                    }
+                }
+                float inv = 1f / (step * step);
+                grime *= inv; marbles *= inv; chips *= inv; soot *= inv;
+                int c = row[x];
+                float r = (c >> 16 & 0xFF), gg = (c >> 8 & 0xFF), b = (c & 0xFF);
+                // road grime: a brown-grey film
+                float k = grime * 0.55f;
+                r += (96 - r) * k; gg += (88 - gg) * k; b += (80 - b) * k;
+                // soot: dark grey
+                k = soot * 0.65f;
+                r += (38 - r) * k; gg += (36 - gg) * k; b += (35 - b) * k;
+                // stone chips expose dark composite
+                k = chips * 0.9f;
+                r += (34 - r) * k; gg += (34 - gg) * k; b += (36 - b) * k;
+                // rubber marbles
+                k = marbles;
+                r += (24 - r) * k; gg += (23 - gg) * k; b += (22 - b) * k;
+                row[x] = (0xFF << 24) | (Math.round(r) << 16) | (Math.round(gg) << 8) | Math.round(b);
+            }
+            img.setRGB(0, y, size, 1, row, 0, size);
+        }
     }
 
     private static Shape poly(double... xy) {

@@ -22,7 +22,10 @@ import java.util.List;
  *       engine rpm and cross-faded, louder on throttle; tire squeal driven by slip beyond the
  *       grip peak; wind rush rising with speed.</li>
  *   <li>AI cars: a positional engine each, attached to the car, with a manually computed
- *       Doppler shift relative to the listener (the camera follows the player's car).</li>
+ *       Doppler shift relative to the listener (the camera follows the player's car). They use
+ *       darker exterior loops ({@link SoundSynth#exteriorEngine}) in several voicings plus a small
+ *       per-car detune, so a pack of identical waveforms does not beat / flange into a warble;
+ *       throttle-driven volume and Doppler are smoothed.</li>
  * </ul>
  */
 public final class CarAudio {
@@ -39,12 +42,14 @@ public final class CarAudio {
     private final Camera cam;
     private boolean playing;
     private float throttleSmooth;
-    private final AudioBuffer aiHigh;
+    private static final int AI_VOICES = 6;
+    private final AudioBuffer[] aiBuffers = new AudioBuffer[AI_VOICES];
+    private final float[][] aiVoiceSamples = new float[AI_VOICES][];
+    private final java.util.Map<Car, float[]> aiState = new java.util.HashMap<>();   // throttle, doppler, detune
     private final java.util.Map<Car, AudioNode> aiEngineCache = new java.util.HashMap<>();
     // raw samples of every loop, kept for the offline mixdown used when recording a movie
     private final java.util.Map<AudioNode, float[]> samples = new java.util.HashMap<>();
     private final java.util.Map<AudioNode, double[]> mixPos = new java.util.HashMap<>();
-    private final float[] aiSamples;
 
     public CarAudio(Node rootNode, Camera cam, Car player) {
         this.cam = cam;
@@ -52,8 +57,10 @@ public final class CarAudio {
         float[] lowS = SoundSynth.engine(LOW_RPM, 0.2f, 11);
         float[] highS = SoundSynth.engine(HIGH_RPM, 0.85f, 12);
         float[] squealS = SoundSynth.squeal(5), windS = SoundSynth.wind(9);
-        aiSamples = SoundSynth.engine(HIGH_RPM, 0.7f, 21);
-        aiHigh = SoundSynth.toBuffer(aiSamples);
+        for (int v = 0; v < AI_VOICES; v++) {
+            aiVoiceSamples[v] = SoundSynth.exteriorEngine(HIGH_RPM, 21 + 13L * v);
+            aiBuffers[v] = SoundSynth.toBuffer(aiVoiceSamples[v]);
+        }
         engineLow = loop("EngineLow", SoundSynth.toBuffer(lowS), false, rootNode);
         engineHigh = loop("EngineHigh", SoundSynth.toBuffer(highS), false, rootNode);
         squeal = loop("TireSqueal", SoundSynth.toBuffer(squealS), false, rootNode);
@@ -81,7 +88,12 @@ public final class CarAudio {
         for (Car c : aiField) {
             AudioNode n = aiEngineCache.get(c);
             if (n == null) {
-                n = loop("Engine-" + c.getName(), aiHigh, true, c.getNode());
+                int voice = aiEngineCache.size() % AI_VOICES;
+                n = loop("Engine-" + c.getName(), aiBuffers[voice], true, c.getNode());
+                samples.put(n, aiVoiceSamples[voice]);
+                // detune +-2.5 %: cars at the same rpm drift apart instead of beating together
+                float detune = 1f + 0.05f * (((aiEngineCache.size() * 0.618034f) % 1f) - 0.5f);
+                aiState.put(c, new float[]{0.5f, 1f, detune});
                 n.setRefDistance(9f);
                 n.setMaxDistance(2000f);
                 aiEngineCache.put(c, n);
@@ -158,9 +170,12 @@ public final class CarAudio {
                 float vl = listenerVel.dot(toSource);                        // + = moving towards
                 doppler = (SPEED_OF_SOUND + vl) / (SPEED_OF_SOUND + vs);
             }
+            float[] st = aiState.get(c);
+            st[0] += (c.getInput().throttle - st[0]) * Math.min(1f, tpf / 0.25f);     // smoothed throttle
+            st[1] += (doppler - st[1]) * Math.min(1f, tpf / 0.12f);                   // smoothed Doppler
             float aiRpm = Math.max(cp.getEngineRpm(), 3000f);
-            n.setPitch(pitch(aiRpm / HIGH_RPM * doppler));
-            n.setVolume(MASTER * (0.5f + 0.5f * c.getInput().throttle) * 0.9f);
+            n.setPitch(pitch(aiRpm / HIGH_RPM * st[1] * st[2]));
+            n.setVolume(MASTER * (0.6f + 0.4f * st[0]) * 0.75f);
         }
     }
 
@@ -187,7 +202,7 @@ public final class CarAudio {
             float d = FastMath.clamp(dist, ref, n.getMaxDistance());
             float gain = ref / (ref + (d - ref));                        // AL_INVERSE_DISTANCE_CLAMPED
             float pan = dist > 0.5f ? to.divideLocal(dist).dot(camLeft) : 0f;   // +1 = left
-            mixSource(n, aiSamples, gain * (1f + 0.5f * pan), gain * (1f - 0.5f * pan), left, right);
+            mixSource(n, samples.get(n), gain * (1f + 0.5f * pan), gain * (1f - 0.5f * pan), left, right);
         }
     }
 
