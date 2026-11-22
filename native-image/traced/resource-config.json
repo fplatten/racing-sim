@@ -199,6 +199,8 @@
   }, {
     "pattern":"\\QTextures/Track/chainlink.png\\E"
   }, {
+    "pattern":"\\QTextures/Track/crowd_atlas.png\\E"
+  }, {
     "pattern":"\\QTextures/Track/crowd_row.png\\E"
   }, {
     "pattern":"\\QTextures/Track/grass_albedo.png\\E"
