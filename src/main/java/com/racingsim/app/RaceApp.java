@@ -75,6 +75,7 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
     private MenuScreen menu;
     private ResultsScreen results;
     private CarAudio audio;
+    private com.racingsim.vehicle.TireSmoke tireSmoke;
     private boolean showHelp = true;
     private Environment environment;
     private float finishedFor;
@@ -174,7 +175,10 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
             rootNode.attachChild(player.getNode());
             loop.addListener(director);
         }));
-        loadSteps.add(new LoadStep("Tuning the engines", () -> audio = new CarAudio(rootNode, cam, player)));
+        loadSteps.add(new LoadStep("Tuning the engines", () -> {
+            audio = new CarAudio(rootNode, cam, player);
+            tireSmoke = new com.racingsim.vehicle.TireSmoke(assetManager, rootNode);
+        }));
         loadSteps.add(new LoadStep("Setting up the timing screens", () -> {
             cameraController = new CameraController(cam);
             player.getNode().addControl(cameraController);
@@ -478,6 +482,7 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
         guiNode.attachChild(hud.getNode());
         player.getPhysics().getAeroModel().setDownforceLevel(menu.downforceLevel());
         director.startRace(laps, menu.pitStops());
+        tireSmoke.clear();
         if (movieFile != null) installMovieAutopilot();
         bullet.setEnabled(true);
         cameraController.setEnabled(true);
@@ -576,6 +581,7 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
         if (playerInput.consumeQuality()) environment.toggleQuality();
         boolean auto = playerInput.consumeToggleAuto();
         boolean mouseToggle = playerInput.consumeMouseToggle();
+        tireSmoke.update(tpf, director.getCars(), confirmOpen || state == State.MENU);
         if (confirmOpen) return;                           // paused behind the prompt
 
         if (state == State.MENU) {
@@ -655,6 +661,12 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
             pilot.requestPit();
             director.setPlayerOverride((car, dt) -> pilot.update(dt, director.getCars()));
             cameraController.snap();
+        }
+
+        if (System.getenv("RACINGSIM_SHOT_SKID") != null) {
+            // tyre smoke screenshots: kick the player's car into a sideways slide (yaw rate, rad/s)
+            float yaw = Float.parseFloat(System.getenv("RACINGSIM_SHOT_SKID"));
+            player.getBody().setAngularVelocity(new Vector3f(0, yaw, 0));
         }
 
         String showcase = System.getenv("RACINGSIM_SHOT_CAM");   // e.g. "7.5,-1.2,1.0", "tcam", "sun"

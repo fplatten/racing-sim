@@ -97,10 +97,10 @@ public final class LiveryPainter {
             drawNumber(s, livery.number(), t, 0.62, 0.30, 0.20, 0, numberFill, numberEdge);
             drawNumber(s, livery.number(), t, 2.29, 0.885, 0.25, 0, numberFill, numberEdge);
             // sponsor decals: sidepod flank, nose, rear endplate foot, cockpit-side contingency patches
-            decal(s, t, sponsor(livery, 0), -0.19, 0.330, 0.200, 1.05, 0, true);    // sidepod flank
-            decal(s, t, sponsor(livery, 1), -1.72, 0.300, 0.125, 0.66, 0, true);    // nose
-            decal(s, t, sponsor(livery, 0), 2.28, 0.665, 0.130, 0.60, 0, true);     // rear wing endplate
-            decal(s, t, sponsor(livery, 2), 0.72, 0.640, 0.105, 0.56, 0, true);     // engine cover
+            decal(s, t, sponsor(livery, TITLE), -0.19, 0.330, 0.200, 1.05, 0, true);      // sidepod flank
+            decal(s, t, sponsor(livery, NOSE), -1.72, 0.300, 0.125, 0.66, 0, true);       // nose
+            decal(s, t, sponsor(livery, ENDPLATE), 2.28, 0.665, 0.130, 0.60, 0, true);    // rear wing endplate
+            decal(s, t, sponsor(livery, ENGINE), 0.72, 0.640, 0.105, 0.56, 0, true);      // engine cover
             contingency(s, t, -1.02, 0.455, side == 1);
             s.dispose();
         }
@@ -150,11 +150,10 @@ public final class LiveryPainter {
         s.setTransform(base);
         drawNumber(s, livery.number(), top, -1.86, 0.0, 0.21, Math.PI / 2, numberFill, numberEdge);
         // rear wing: big sponsor across the main plane, readable from behind (up = forward)
-        decal(s, top, sponsor(livery, 0), 2.27, 0.0, 0.25, 0.98, -Math.PI / 2, true);
+        decal(s, top, sponsor(livery, REAR_WING), 2.27, 0.0, 0.25, 0.98, -Math.PI / 2, true);
         // front wing main planes and sidepod tops
         for (int sgn = -1; sgn <= 1; sgn += 2) {
-            decal(s, top, sponsor(livery, 2), -2.30, sgn * 0.55, 0.17, 0.74, -Math.PI / 2, true);
-            decal(s, top, sponsor(livery, 1), -0.05, sgn * 0.58, 0.20, 0.92, sgn > 0 ? 0 : Math.PI, true);
+            decal(s, top, sponsor(livery, FRONT_WING), -2.30, sgn * 0.55, 0.17, 0.74, -Math.PI / 2, true);
         }
         s.dispose();
         g.dispose();
@@ -193,13 +192,34 @@ public final class LiveryPainter {
 
     // ------------------------------------------------------------------ sponsors, decals and wear
 
-    /** Fictional sponsors; each car gets a title sponsor and two associates. */
+    /** Fictional sponsors (SponsorArt brands). */
     private static final String[] SPONSORS = java.util.Arrays.stream(SponsorArt.BRANDS).map(SponsorArt.Brand::name)
             .toArray(String[]::new);
 
-    private static String sponsor(Livery livery, int slot) {
-        int h = Math.floorMod(livery.name().hashCode() * 31 + livery.number() * 7, SPONSORS.length);
-        return SPONSORS[(h + slot * 5) % SPONSORS.length];
+    /**
+     * Sponsor spots. Like a real sponsorship package, each car carries six different brands: the
+     * title sponsor on the sidepods, then associates on the rear wing, engine cover, endplates,
+     * nose and front wing. The offsets are distinct modulo the number of brands, so no brand
+     * appears twice on one car.
+     */
+    private static final int TITLE = 0, REAR_WING = 3, ENGINE = 6, ENDPLATE = 9, NOSE = 12, FRONT_WING = 14;
+
+    /**
+     * Brand for a spot on this car. Cars are numbered by their place in the field (Livery.forIndex),
+     * and the title sponsor steps through the brands with a stride coprime to their count, so the
+     * first 16 cars all have different title sponsors (and therefore different sidepod and engine
+     * cover logos); larger fields repeat them, the 17th car taking the 1st car's title, and so on.
+     */
+    private static String sponsor(Livery livery, int spot) {
+        int n = SPONSORS.length;
+        return SPONSORS[Math.floorMod(fieldIndex(livery) * 5 + spot, n)];
+    }
+
+    private static int fieldIndex(Livery livery) {
+        for (int i = 0; i < Livery.MAX_CARS; i++) {
+            if (Livery.forIndex(i).number() == livery.number()) return i;
+        }
+        return Math.floorMod(livery.number(), Livery.MAX_CARS);
     }
 
     /**
