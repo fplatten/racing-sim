@@ -167,7 +167,7 @@ public final class CarAudio {
             if (dist > 0.5f) {
                 toSource.divideLocal(dist);
                 float vs = c.getBody().getLinearVelocity().dot(toSource);   // + = moving away
-                float vl = listenerVel.dot(toSource);                        // + = moving towards
+                float vl = listenerVel.dot(toSource);                        // + = moving toward
                 doppler = (SPEED_OF_SOUND + vl) / (SPEED_OF_SOUND + vs);
             }
             float[] st = aiState.get(c);

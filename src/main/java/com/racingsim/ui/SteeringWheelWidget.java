@@ -17,7 +17,7 @@ import com.jme3.scene.VertexBuffer;
 import com.jme3.util.BufferUtils;
 
 /**
- * Steering wheel at the bottom centre of the screen. The hub sits below the screen edge so
+ * Steering wheel at the bottom center of the screen. The hub sits below the screen edge so
  * only the arc from 10 to 2 o'clock is visible; the rest of the wheel is implied. A red stripe
  * marks 12 o'clock. The whole wheel rotates with the steering input (keyboard or mouse).
  */
@@ -56,15 +56,15 @@ public final class SteeringWheelWidget {
         add(mat, "RimOuterEdge", arc(radius - 2f, radius + 1.5f, -180, 180, 160,
                 new ColorRGBA(0.02f, 0.02f, 0.02f, 0.9f), new ColorRGBA(0.02f, 0.02f, 0.02f, 0.9f)), 2);
         // suede grips where the hands go (around 10 and 2 o'clock) with stitching lines
-        for (float centre : new float[]{-55f, 55f}) {
-            add(mat, "Grip", arc(rIn + 1.5f, radius - 2f, centre - 22, centre + 22, 40,
+        for (float center : new float[]{-55f, 55f}) {
+            add(mat, "Grip", arc(rIn + 1.5f, radius - 2f, center - 22, center + 22, 40,
                     new ColorRGBA(0.11f, 0.11f, 0.13f, 1f), new ColorRGBA(0.22f, 0.22f, 0.25f, 1f)), 3);
-            for (float edge : new float[]{centre - 22, centre + 22}) {
+            for (float edge : new float[]{center - 22, center + 22}) {
                 add(mat, "GripEdge", arc(rIn + 1.5f, radius - 2f, edge - 0.6f, edge + 0.6f, 2,
                         new ColorRGBA(0.5f, 0.5f, 0.55f, 1f), new ColorRGBA(0.5f, 0.5f, 0.55f, 1f)), 4);
             }
         }
-        // carbon spokes towards the (hidden) hub, at 10:30 / 1:30 and 6 o'clock
+        // carbon spokes toward the (hidden) hub, at 10:30 / 1:30 and 6 o'clock
         for (float a : new float[]{-48f, 48f, 180f}) {
             add(mat, "Spoke", spoke(radius * 0.18f, rIn, a, radius * 0.07f,
                     new ColorRGBA(0.10f, 0.10f, 0.11f, 0.95f)), 1);
@@ -110,7 +110,7 @@ public final class SteeringWheelWidget {
     }
 
     /**
-     * Annular sector between angles a0..a1 (degrees clockwise from 12 o'clock), coloured with
+     * Annular sector between angles a0..a1 (degrees clockwise from 12 o'clock), colored with
      * an inner -> outer gradient.
      */
     private static Mesh arc(float rIn, float rOut, float a0, float a1, int segments, ColorRGBA inner, ColorRGBA outer) {
@@ -150,7 +150,7 @@ public final class SteeringWheelWidget {
         return mesh(pos, col, new short[]{0, 1, 2, 0, 2, 3});
     }
 
-    /** Colours are authored in sRGB; vertex colours are linear in the gamma-correct pipeline. */
+    /** Colors are authored in sRGB; vertex colors are linear in the gamma-correct pipeline. */
     private static void putColor(float[] col, int v, ColorRGBA c) {
         col[v * 4] = srgbToLinear(c.r);
         col[v * 4 + 1] = srgbToLinear(c.g);

@@ -16,8 +16,8 @@ import com.racingsim.vehicle.VehicleSpec;
 
 /**
  * Wall-impact test: fires a car into the outer wall (straight and banked turn) at several speeds,
- * impact angles and body yaws (nose first, sideways, backwards) and reports how far it gets
- * thrown: peak height of the centre of mass above its resting height, peak speed away from the track surface, peak
+ * impact angles and body yaws (nose first, sideways, backward) and reports how far it gets
+ * thrown: peak height of the center of mass above its resting height, peak speed away from the track surface, peak
  * roll / pitch, and whether it ended up over the wall or upside down.
  * <pre>  ./gradlew wallCheck</pre>
  */

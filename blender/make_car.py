@@ -1,4 +1,4 @@
-"""Builds the 1990s-style Indy car (modelled on a 1990s North American open-wheel race car)
+"""Builds the 1990s-style Indy car (modeled on a 1990s North American open-wheel race car)
 and exports glTF binaries for the game.
 
     blender --background --factory-startup --python blender/make_car.py
@@ -474,11 +474,11 @@ def helmet_bottom(a):
     return 2.02 + 0.36 * ((math.cos(a) + 1) / 2) ** 1.5
 
 
-def fix_normals_outward(obj, centre):
-    """Flip faces whose normal points towards the centre (parametric surfaces)."""
+def fix_normals_outward(obj, center):
+    """Flip faces whose normal points toward the center (parametric surfaces)."""
     mesh = obj.data
     for poly in mesh.polygons:
-        if poly.normal.dot(poly.center - centre) < 0:
+        if poly.normal.dot(poly.center - center) < 0:
             poly.flip()
     mesh.update()
 
@@ -492,7 +492,7 @@ def build_helmet():
         for j in range(npol + 1):
             p = 1e-3 + (pb - 1e-3) * j / npol
             verts.append(tuple(helmet_point(a, p)))
-            # u: 0.5 = front centre, 0.75 = car's left; v: 1 = crown (HelmetPainter uses this layout)
+            # u: 0.5 = front center, 0.75 = car's left; v: 1 = crown (HelmetPainter uses this layout)
             uvs.append((0.5 + a / (2 * math.pi), 1.0 - p / 2.4))
     for i in range(na):
         for j in range(npol):
@@ -538,7 +538,7 @@ def build_helmet():
         d = Vector((math.sin(t), math.cos(t), 0))
         for (r, z) in ((0.165, 0.50), (0.165, 0.665), (0.19, 0.69), (0.255, 0.675), (0.275, 0.50)):
             q = Vector((0, -0.29, 0.0)) + d * r
-            q.z = z - 0.05 * (1 - math.cos(t)) * 0.5        # lower towards the cockpit sides
+            q.z = z - 0.05 * (1 - math.cos(t)) * 0.5        # lower toward the cockpit sides
             pad_v.append(tuple(q))
     for i in range(steps):
         for j in range(4):

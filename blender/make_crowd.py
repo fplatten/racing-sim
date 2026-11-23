@@ -4,10 +4,10 @@
 
 Textures/Track/crowd_atlas.png, 2048 x 512: four strips of 128 px, each one row of 40 seats over
 20 m and 1.0 m tall (row 0 of a strip = top). Spectators are drawn at 2x and box-filtered down for
-clean alpha edges; colour is bled into the transparent texels so mip-maps do not get dark fringes.
+clean alpha edges; color is bled into the transparent texels so mip-maps do not get dark fringes.
 Each person: legs / lap in trousers, jeans or shorts, a shaded torso (shirt, jacket or team top,
 some with a chest print), arms resting or raised, a head with hair, a cap or sunglasses; children
-and empty seats mixed in. Natural, muted clothing colours.
+and empty seats mixed in. Natural, muted clothing colors.
 """
 import os
 import sys
@@ -25,7 +25,7 @@ SKIN = np.array([[0.94, 0.78, 0.66], [0.87, 0.68, 0.54], [0.76, 0.56, 0.42], [0.
 HAIR = np.array([[0.06, 0.05, 0.04], [0.16, 0.10, 0.06], [0.30, 0.20, 0.12], [0.55, 0.42, 0.25],
                  [0.78, 0.66, 0.42], [0.55, 0.53, 0.50], [0.80, 0.79, 0.76]])
 HAIR_W = np.array([0.24, 0.24, 0.16, 0.12, 0.08, 0.10, 0.06])
-# (colour, weight): what a race crowd actually wears
+# (color, weight): what a race crowd actually wears
 SHIRTS = [((0.86, 0.86, 0.84), 16), ((0.07, 0.07, 0.08), 14), ((0.22, 0.22, 0.24), 8), ((0.45, 0.46, 0.48), 7),
           ((0.12, 0.16, 0.30), 9), ((0.28, 0.38, 0.55), 6), ((0.55, 0.12, 0.12), 6), ((0.75, 0.38, 0.12), 4),
           ((0.82, 0.70, 0.25), 4), ((0.20, 0.34, 0.20), 4), ((0.40, 0.40, 0.25), 3), ((0.38, 0.12, 0.16), 3),
@@ -62,7 +62,7 @@ def strip(seed_offset):
     yy_full, xx_full = np.mgrid[0:h, 0:w].astype(float)
     noise = rng.normal(0, 1, (h, w))
 
-    # seats: molded backs with a lighter rim and a seat pan edge, shaded towards the sides
+    # seats: molded backs with a lighter rim and a seat pan edge, shaded toward the sides
     for k in range(PEOPLE):
         cx = (k + 0.5) * seat_w
         x0, x1 = int(cx - seat_w * 0.5), int(cx + seat_w * 0.5)
@@ -98,7 +98,7 @@ def strip(seed_offset):
         skin = vary(SKIN[rng.integers(len(SKIN))], 0.05)
         shorts = rng.random() < 0.35
 
-        # legs: lap / thighs towards the viewer, then shins and shoes
+        # legs: lap / thighs toward the viewer, then shins and shoes
         lap = (yy > h * 0.70) & (yy < h * 0.86) & (np.abs(xx - cx) < half_sh * 1.02)
         paint(sub, lap, pants * 0.82)
         for side in (-1, 1):
@@ -176,14 +176,14 @@ def strip(seed_offset):
             eyes = (np.abs(yy - (hy + hr * 0.05)) < hr * 0.07) & (np.abs(xx - hx) < hr * 0.6) & head
             sub[eyes, :3] *= 0.7
 
-    # 2x box filter -> final resolution (alpha-weighted colour)
+    # 2x box filter -> final resolution (alpha-weighted color)
     a = img[..., 3:4]
     prem = img[..., :3] * a
     def down(x):
         return x.reshape(h // SS, SS, w // SS, SS, -1).mean(axis=(1, 3))
     a2, p2 = down(a), down(prem)
     rgb = np.where(a2 > 1e-4, p2 / np.maximum(a2, 1e-4), 0)
-    # bleed colour into transparent texels (mip-maps then keep the right colours at the edges)
+    # bleed color into transparent texels (mip-maps then keep the right colors at the edges)
     filled = a2[..., 0] > 0.01
     rgb_f = rgb.copy()
     for _ in range(6):

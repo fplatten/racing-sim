@@ -9,8 +9,8 @@ import com.jme3.util.BufferUtils;
 import java.util.Arrays;
 
 /**
- * Small utility for building flat-shaded, vertex-coloured triangle meshes procedurally.
- * Every face gets its own vertices so colours and normals stay crisp.
+ * Small utility for building flat-shaded, vertex-colored triangle meshes procedurally.
+ * Every face gets its own vertices so colors and normals stay crisp.
  * Normals are oriented using a caller-supplied "hint" direction, so winding order does not
  * matter (materials using these meshes should disable face culling).
  */
@@ -61,7 +61,7 @@ public final class MeshBuilder {
         quad(a, b, c, d, color, color, color, color, hint, uv);
     }
 
-    /** Quad with per-corner colours and optional texture coordinates. */
+    /** Quad with per-corner colors and optional texture coordinates. */
     public void quad(Vector3f a, Vector3f b, Vector3f c, Vector3f d,
                      ColorRGBA ca, ColorRGBA cb, ColorRGBA cc, ColorRGBA cd, Vector3f hint, float[] uv) {
         if (uv == null) uv = NO_UV;
@@ -97,7 +97,7 @@ public final class MeshBuilder {
         idx[iCount++] = i2;
     }
 
-    /** Oriented box given a centre, three orthonormal axes and half-extents. */
+    /** Oriented box given a center, three orthonormal axes and half-extents. */
     public void box(Vector3f c, Vector3f ax, Vector3f ay, Vector3f az, float hx, float hy, float hz, ColorRGBA color) {
         Vector3f x = ax.mult(hx), y = ay.mult(hy), z = az.mult(hz);
         Vector3f[] v = new Vector3f[8];

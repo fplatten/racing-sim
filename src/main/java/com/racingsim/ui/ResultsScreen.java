@@ -14,7 +14,7 @@ import com.racingsim.track.LapTracker;
 
 import java.util.List;
 
-/** Chequered-flag classification, updated live while the rest of the field finishes. */
+/** Checkered-flag classification, updated live while the rest of the field finishes. */
 public final class ResultsScreen {
 
     private static final ColorRGBA PANEL = new ColorRGBA(0.02f, 0.03f, 0.06f, 0.78f);
@@ -35,7 +35,7 @@ public final class ResultsScreen {
         panelX = (width - panelW) / 2;
         float py = (height - ph) / 2;
         rect(assets, panelX, py, panelW, ph, PANEL, 0);
-        // chequered strip
+        // checkered strip
         for (int i = 0; i < 38; i++) {
             for (int j = 0; j < 2; j++) {
                 ColorRGBA c = (i + j) % 2 == 0 ? ColorRGBA.White : ColorRGBA.Black;
@@ -68,10 +68,10 @@ public final class ResultsScreen {
     public Node getNode() { return root; }
 
     public void update(LapTracker tracker, LapTracker.Entry player) {
-        boolean penalised = player.finished() && !tracker.stopsMet(player);
-        title.setText(!player.finished() ? "CHEQUERED FLAG"
-                : penalised ? String.format("MISSED PIT STOP  -  CLASSIFIED P%d", player.position())
-                : String.format("CHEQUERED FLAG  -  YOU FINISHED P%d", player.position()));
+        boolean penalized = player.finished() && !tracker.stopsMet(player);
+        title.setText(!player.finished() ? "CHECKERED FLAG"
+                : penalized ? String.format("MISSED PIT STOP  -  CLASSIFIED P%d", player.position())
+                : String.format("CHECKERED FLAG  -  YOU FINISHED P%d", player.position()));
         List<LapTracker.Entry> order = tracker.getOrder();
         LapTracker.Entry winner = order.get(0);
         List<LapTracker.Entry> shown = StandingsView.rows(order, player, ROWS);

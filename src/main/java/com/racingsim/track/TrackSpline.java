@@ -11,10 +11,10 @@ import java.util.List;
  * <p>
  * Track coordinates:
  * <ul>
- *   <li>{@code s} - longitudinal progress along the centerline, 0..{@link #LENGTH} metres,
+ *   <li>{@code s} - longitudinal progress along the centerline, 0..{@link #LENGTH} meters,
  *       0 = start/finish line (middle of the front straight).</li>
  *   <li>{@code d} - horizontal lateral offset from the centerline, positive = outward
- *       (towards the outer wall, i.e. the driver's right since all turns are left-handers).</li>
+ *       (toward the outer wall, i.e. the driver's right since all turns are left-handers).</li>
  * </ul>
  * World frame: Y up, the centerline lies in the XZ plane; the racing surface height is
  * given by {@link #height(float, float)} (banking pivots about the inner edge of the road).
@@ -32,7 +32,7 @@ public final class TrackSpline {
     /** Length over which banking transitions in/out around each turn boundary. */
     public static final float BANK_RAMP = 80f;
 
-    // Cross-section layout (lateral offsets, metres)
+    // Cross-section layout (lateral offsets, meters)
     public static final float INNER_WALL = -18f;
     public static final float APRON_INNER = -15f;
     public static final float ROAD_INNER = -7.5f;
@@ -82,7 +82,7 @@ public final class TrackSpline {
         final float cx, cz, r, psi0;
         Arc(float startX, float startZ, float psi0, float r, float length) {
             this.psi0 = psi0; this.r = r; this.length = length;
-            // centre lies to the left: C = P - right * R
+            // center lies to the left: C = P - right * R
             float rx = -FastMath.sin(psi0), rz = FastMath.cos(psi0);
             cx = startX - rx * r;
             cz = startZ - rz * r;
@@ -98,7 +98,7 @@ public final class TrackSpline {
             float vx = x - cx, vz = z - cz;
             float dist = FastMath.sqrt(vx * vx + vz * vz);
             float psi = FastMath.atan2(-vx, vz);
-            // angle travelled from the arc start, centred on the arc's mid-point so that
+            // angle traveled from the arc start, centerd on the arc's mid-point so that
             // positions beyond either end clamp to the nearest end
             float sweep = length / r;
             float delta = wrapAngle(psi0 - psi - sweep / 2) + sweep / 2;
@@ -136,7 +136,7 @@ public final class TrackSpline {
         center.set((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
     }
 
-    /** Geometric centre of the oval (y = 0). */
+    /** Geometric center of the oval (y = 0). */
     public Vector3f getCenter() { return center.clone(); }
 
     public static float wrapAngle(float a) {

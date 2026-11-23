@@ -237,14 +237,14 @@ public final class HeadlessSimCheck {
             if (p.getSqueal() > 0.2f) squealFrames++;
             if ((playerMode.equals("pit") || playerMode.equals("exitlane")) && i % 30 == 0) {
                 Vector3f pos = player.getBody().getPhysicsLocation();
-                int contacts = 0, tarmac = 0;
+                int contacts = 0, asphalt = 0;
                 for (VehiclePhysics.Wheel w : p.getWheels()) {
                     if (w.contact) contacts++;
-                    if (w.contact && w.onTrack) tarmac++;
+                    if (w.contact && w.onTrack) asphalt++;
                 }
                 System.out.printf("  PIT t=%5.1f rel=%7.1f d=%6.2f y=%5.2f v=%5.1f wheelsDown=%d onPitRoad=%d recoveries=%d%n",
                         director.getLapTracker().getTime(), com.racingsim.track.PitLane.rel(player.trackS()), player.trackD(),
-                        pos.y, player.speed(), contacts, tarmac, director.getRecoveries());
+                        pos.y, player.speed(), contacts, asphalt, director.getRecoveries());
             }
             if (playerMode.equals("grass")) {
                 float t = director.getLapTracker().getTime();

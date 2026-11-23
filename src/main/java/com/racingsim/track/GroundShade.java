@@ -5,8 +5,8 @@ import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 
 /**
- * Colour of the land around the track (a multiplier on the tiling grass texture, written into
- * the vertex colours) and where the woods are. Shared by the ground mesh, the grass strips
+ * Color of the land around the track (a multiplier on the tiling grass texture, written into
+ * the vertex colors) and where the woods are. Shared by the ground mesh, the grass strips
  * beside the track and the tree placement in {@link Scenery}, so the grass under a wood is
  * darker and the woods sit where the ground says they do.
  * <ul>
@@ -34,7 +34,7 @@ public final class GroundShade {
         stripeZ = f.x;
     }
 
-    /** Ground colour multiplier at world (x, z). */
+    /** Ground color multiplier at world (x, z). */
     public ColorRGBA color(float x, float z) {
         tmp.set(x, 0, z);
         track.project(tmp, tp);
@@ -71,7 +71,7 @@ public final class GroundShade {
 
     /**
      * 0..1 density of woodland at (x, z) with track offset d: none on the mown lawns, patchy woods
-     * from ~100 m outside the track, close to continuous towards the distant tree line.
+     * from ~100 m outside the track, close to continuous toward the distant tree line.
      */
     public float woodDensity(float x, float z, float d) {
         if (d < 95f) return 0f;

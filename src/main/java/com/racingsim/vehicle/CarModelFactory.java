@@ -18,7 +18,7 @@ import com.racingsim.track.Pbr;
  * Builds a race car from the Blender-made glTF models ({@code blender/make_car.py}):
  * the body (monocoque, sidepods, wings, suspension, driver) plus four wheels, with PBR
  * materials and a per-car livery texture painted by {@link LiveryPainter}.
- * Car local frame: +Z forward, +X left, origin = centre of mass.
+ * Car local frame: +Z forward, +X left, origin = center of mass.
  */
 public final class CarModelFactory {
 

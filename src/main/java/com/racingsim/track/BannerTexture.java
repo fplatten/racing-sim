@@ -18,7 +18,7 @@ import java.util.Random;
 
 /**
  * The sponsor boards on the grandstand front wall: one 40 m module (0.95 m tall) split into five
- * panels for fictional sponsors, each in its own colour scheme with a subtle sheen and slight
+ * panels for fictional sponsors, each in its own color scheme with a subtle sheen and slight
  * weathering. Drawn at start-up (the banner quad in {@code make_props.py} maps u = 0..1 along it).
  */
 public final class BannerTexture {
@@ -61,7 +61,7 @@ public final class BannerTexture {
             g.setColor(fg);
             g.fill(t.createTransformedShape(gv.getOutline()));
         }
-        // weathering: faint streaks and grime towards the bottom edge
+        // weathering: faint streaks and grime toward the bottom edge
         Random rnd = new Random(4);
         for (int k = 0; k < 900; k++) {
             int x = rnd.nextInt(w), y = h / 2 + rnd.nextInt(h / 2);

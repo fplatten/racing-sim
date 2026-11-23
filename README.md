@@ -29,7 +29,7 @@ It has custom tire and aero physics at a fixed 240 Hz, up to 32 AI opponents, ae
    - **Grid:** Three abreast in rows of 3 with the pole on the inside, so 11 rows for 33 cars.
    - **Opening lap:** the AI cars hold their lanes through the green flag and Turns 1 and 2, taking the turns a little slower while three-wide. On the back straight each car merges onto the racing line once the line beside it is clear.
    - **Green flag:** the first crossing of the start/finish line starts lap 1.
-3. **During the race:** the HUD shows `LAP n/N`, then `FINAL LAP`, and `PITS n/N` when stops are required (yellow until you have made them all, then green). The chequered flag drops when a car completes N laps.
+3. **During the race:** the HUD shows `LAP n/N`, then `FINAL LAP`, and `PITS n/N` when stops are required (yellow until you have made them all, then green). The checkered flag drops when a car completes N laps.
    - **Esc** pauses the race behind a prompt ([screenshot](docs/leave-race-prompt.png)): Enter abandons the race and returns to the menu, Esc carries on. In the menu, Esc asks whether to quit the game. Only Enter confirms these prompts; Space doesn't.
 4. **Results:** the classification appears two seconds after you finish and updates as the rest of the field crosses the line. A `PITS` column shows each car's stops; a car that finishes without all its mandatory stops gets `PIT PENALTY` and is classified behind every car that made them. Enter goes back to the menu.
 
@@ -40,7 +40,7 @@ It has custom tire and aero physics at a fixed 240 Hz, up to 32 AI opponents, ae
 - **Countdown:** as soon as the car is stopped in the box an **8-second** countdown starts, with a bar on screen. The crew holds the car on the brakes, so you can let go of the pedals.
 - **Leaving early:** if the car leaves the box before the countdown reaches zero, the stop **does not count** (red message). Stop in the box again to restart the countdown.
 - **Done:** at zero, `PIT STOP COMPLETE - GO GO GO!` appears ([screenshot](docs/pit-stop-complete.png)). Drive out through the pit exit lane, which rejoins the track at the exit of Turn 2.
-- **AI cars** make the same stops, also 8 s each. Each car plans its stops spread evenly over the race, staggered by a lap between cars so the pit lane is not jammed. The AI drives the pit entry lane, holds 60 mph on pit road, stops in its own box and waits for traffic in the fast lane before pulling out. After the exit lane it stays low until the racing line beside it is clear. AI boxes use every other box first, so neighbouring boxes are usually empty.
+- **AI cars** make the same stops, also 8 s each. Each car plans its stops spread evenly over the race, staggered by a lap between cars so the pit lane is not jammed. The AI drives the pit entry lane, holds 60 mph on pit road, stops in its own box and waits for traffic in the fast lane before pulling out. After the exit lane it stays low until the racing line beside it is clear. AI boxes use every other box first, so neighboring boxes are usually empty.
 
 
 ## Controls
@@ -61,7 +61,7 @@ It has custom tire and aero physics at a fixed 240 Hz, up to 32 AI opponents, ae
 ## Packages
 | Package | Contents |
 |---|---|
-| `track` | `TrackSpline`: 2.5 mi rectangular oval (5/8 mi straights, 1/8 mi chutes, four 1/4 mi turns banked 9.2°) with `(s, d)` track coordinates. `TrackBuilder`: surface/apron/walls mesh + static `RigidBodyControl` collider (mass 0), chequered start/finish line, fence posts and pylons every 50 m, turn boards, PBR-textured surfaces and chain-link fence. `Scenery`: Blender props (grandstands along the whole front straight and round into the turns, the back-straight stands, timing tower, tents, light towers; `BannerTexture` paints the sponsor boards) and the woods (see [Surroundings](#surroundings)). `GroundShade`: colour of the land around the track and where the woods grow. `LapTracker`: laps, lap times, positions. |
+| `track` | `TrackSpline`: 2.5 mi rectangular oval (5/8 mi straights, 1/8 mi chutes, four 1/4 mi turns banked 9.2°) with `(s, d)` track coordinates. `TrackBuilder`: surface/apron/walls mesh + static `RigidBodyControl` collider (mass 0), checkered start/finish line, fence posts and pylons every 50 m, turn boards, PBR-textured surfaces and chain-link fence. `Scenery`: Blender props (grandstands along the whole front straight and round into the turns, the back-straight stands, timing tower, tents, light towers; `BannerTexture` paints the sponsor boards) and the woods (see [Surroundings](#surroundings)). `GroundShade`: color of the land around the track and where the woods grow. `LapTracker`: laps, lap times, positions. |
 | `physics` | `FixedStepPhysics` (240 Hz via Bullet sub-steps), `TireModel` (Pacejka Magic Formula + load sensitivity + friction ellipse), `AeroModel` (v² drag/downforce), `DraftingSystem` (60 m × ±3.5 m wake cone, draftFactor 0–0.35). |
 | `vehicle` | `VehiclePhysics` (4-wheel raycast suspension, springs/dampers/ARBs, sub-stepped wheel spin, RWD powertrain, brakes), `Gearbox` (6-speed sequential, auto/manual, reverse), `VehicleSpec`, `CarModelFactory` (Blender glTF car + PBR materials), `LiveryPainter`, `HelmetPainter`, `BodyDetail`, `TireTexture`, `Livery`, `Car`. |
 | `ai` | `AIDriver` (velocity-frame Pure Pursuit + curvature-tracking integral loop, overtaking and side-by-side awareness), `RacingLine`, `SpeedProfile` (banked-corner speed limits with downforce + braking pass). |
@@ -72,16 +72,16 @@ It has custom tire and aero physics at a fixed 240 Hz, up to 32 AI opponents, ae
 ![Race start](docs/race-start-realistic.png)
 
 All art assets are generated by Python scripts run in **Blender 5.2** (headless) and committed under
-`src/main/resources`. The car is modelled on a 1990s North American open-wheel race car, and the look aims for
+`src/main/resources`. The car is modeled on a 1990s North American open-wheel race car, and the look aims for
 golden-hour sunlight.
 
 | Script | Output |
 |---|---|
 | `blender/make_car.py` | `Models/Car/indycar.glb` (lofted monocoque, sidepods, airbox, airfoil wings, wishbones, driver) plus `wheel_front.glb` / `wheel_rear.glb` (lathe-turned slicks and rims); also saves `blender/indycar.blend` |
-| `blender/make_props.py` | grandstand module (open aluminium bleachers on a steel frame, crowd rows, sponsor banner board, cantilever roof with purlins, floodlights; the open back lets light through), timing tower, tents, light tower |
+| `blender/make_props.py` | grandstand module (open aluminum bleachers on a steel frame, crowd rows, sponsor banner board, cantilever roof with purlins, floodlights; the open back lets light through), timing tower, tents, light tower |
 | `blender/make_crowd.py` | `crowd_atlas.png`: four rows of seated spectators (clothes, caps, sunglasses, children, people cheering, empty seats) |
 | `blender/make_foliage.py` | trees and shrubs (oak, maple, spruce, young tree, shrub) built from alpha-tested leaf cards, plus the leaf atlas, bark textures and the distant tree-line texture |
-| `blender/make_textures.py` | tileable PBR textures: asphalt, painted wall, grass, chain link, carbon fibre |
+| `blender/make_textures.py` | tileable PBR textures: asphalt, painted wall, grass, chain link, carbon fiber |
 | `blender/make_sky.py` | 4096×2048 equirectangular golden-hour sky (Cycles, physical sky with procedural cumulus) |
 
 ```
@@ -99,9 +99,9 @@ blender --background --factory-startup --python blender/make_sky.py
   - The infield is parkland: clumps of broadleaf trees with shrubs, and lone oaks.
   - Trees keep clear of the track, the buildings and the infield service roads.
   - Each tree gets a random size, rotation and one of three leaf tints. Trees are merged per 250 m cell, so woods behind the camera are culled.
-- **Tree crowns:** made of leaf cards, with normals bent outwards from the crown centre for soft, rounded shading. Vertex colours darken the inside and underside of each crown.
+- **Tree crowns:** made of leaf cards, with normals bent outwards from the crown center for soft, rounded shading. Vertex colors darken the inside and underside of each crown.
 - **Horizon:** two rings of tree-line silhouette, 330 m and 560 m out (the far one slightly hazy), close off the horizon behind the 3D woods.
-- **Ground:** a 5 m grid around the track (100 m cells out to 2 km). Its vertex colours come from `GroundShade`:
+- **Ground:** a 5 m grid around the track (100 m cells out to 2 km). Its vertex colors come from `GroundShade`:
   - mown lawns with mowing stripes along the straights in the infield and out to about 140 m;
   - rougher, yellower meadow beyond;
   - darker forest floor under the woods;
@@ -110,17 +110,17 @@ blender --background --factory-startup --python blender/make_sky.py
   - The band is about a car wide and fades out softly to clean asphalt at its edges.
   - It is darkest and narrowest through the turns, with two slightly darker wheel tracks, and wider and fainter on the straights, where cars spread out.
   - The visible road is split into 0.4 m strips for a smooth edge. The physics collider keeps the coarse road.
-  - The groove darkens the asphalt colour. It is also fed to the shader as ambient occlusion, which dulls the sky reflection that dominates the road at a driver's eye level.
+  - The groove darkens the asphalt color. It is also fed to the shader as ambient occlusion, which dulls the sky reflection that dominates the road at a driver's eye level.
 - **Asphalt wear:** the 3 m tiling asphalt texture holds only fine stone grain. Anything bigger repeats every 3 m, and at racing speed the car covers about one tile per frame, so repeated stains would strobe into one stain that seems to stand still (the wagon-wheel effect). Broad patches and the odd small dark stain (more of them in the groove) are painted per vertex instead, from noise over the whole lap (`TrackBuilder.surfaceVariation`). No two are alike, and they pass by at the car's real speed.
   - Screenshots: [in the race](docs/rubber-groove.png), [from above the Turn 1 apex](docs/rubber-groove-apex.png), [woods along the back straight](docs/woods-back-straight.png).
 
 How the game uses them:
-- **Car paint:** each car's paint, race numbers and loud die-cut stickers for fictional sponsors are drawn at runtime by `LiveryPainter`. `SponsorArt` draws the stickers: 16 brands, each with its own neon colours, heavy outlined italic lettering (straight, arched or growing letter by letter) and a cartoon mascot, with black and neon edges grown around the letters and the mascot so the sticker follows their shape (no rectangular plates). Every car has its own six-brand sponsor package, with no brand repeated on a car: the title sponsor on the sidepods, then associates on the rear wing, engine cover, endplates, nose and front wing. Title sponsors rotate through the field, so the first 16 cars all carry different sidepod and engine cover logos (a tyre, flame, lightning bolt, oil or water drop, sun in shades, shark, robot or mountain). Everything is placed using the livery UV layout written by `make_car.py`. `BodyDetail` adds what every car shares: panel seams and fasteners (normal map), a glossy clear coat that goes rough where the car is dirty, and wear (road grime, rubber marbles, stone chips on the nose and front wing, soot at the back).
-- **Helmets:** `HelmetPainter` paints each driver's helmet in the car's colours (three designs, a sponsor brow strip, the race number on the back) for the helmet shell, tinted visor and headrest built in `make_car.py`.
+- **Car paint:** each car's paint, race numbers and loud die-cut stickers for fictional sponsors are drawn at runtime by `LiveryPainter`. `SponsorArt` draws the stickers: 16 brands, each with its own neon colors, heavy outlined italic lettering (straight, arched or growing letter by letter) and a cartoon mascot, with black and neon edges grown around the letters and the mascot so the sticker follows their shape (no rectangular plates). Every car has its own six-brand sponsor package, with no brand repeated on a car: the title sponsor on the sidepods, then associates on the rear wing, engine cover, endplates, nose and front wing. Title sponsors rotate through the field, so the first 16 cars all carry different sidepod and engine cover logos (a tire, flame, lightning bolt, oil or water drop, sun in shades, shark, robot or mountain). Everything is placed using the livery UV layout written by `make_car.py`. `BodyDetail` adds what every car shares: panel seams and fasteners (normal map), a glossy clear coat that goes rough where the car is dirty, and wear (road grime, rubber marbles, stone chips on the nose and front wing, soot at the back).
+- **Helmets:** `HelmetPainter` paints each driver's helmet in the car's colors (three designs, a sponsor brow strip, the race number on the back) for the helmet shell, tinted visor and headrest built in `make_car.py`.
 - **Tires:** `TireTexture` makes worn slicks: a scrubbed, grained tread with rubber pick-up near the shoulders and satin sidewalls with raised, worn lettering (albedo, normal and roughness maps).
-- **Tire smoke:** `TireSmoke` puffs smoke from a tire's contact patch when it slides sideways past its grip peak (about 6 degrees of slip, thick by about 18), and from big lock-ups or wheelspin. The puffs grow, rise and fade over 1.6-3.2 s, and a sliding car leaves a billowing trail. All cars share one particle pool.
+- **Tire smoke:** `TireSmoke` puffs smoke from a tire's contact patch when it slides sideways past its grip peak (about 6 degrees of slip, thick by about 18), and from big lock-ups or wheelspin. The puffs grow, rise and fade over 1.6-3.2 s, and a sliding car leaves a billowing trail. ([screenshot](docs/tire-smoke.png)) All cars share one particle pool.
 - **Rendering:** `PBRLighting` materials, with image-based lighting from the sky via `EnvironmentProbeControl`.
-- **Post-processing:** 4096 shadow maps, SSAO, light shafts, bloom, filmic tone mapping, a custom colour grade (`ColorGradeFilter`) and FXAA.
+- **Post-processing:** 4096 shadow maps, SSAO, light shafts, bloom, filmic tone mapping, a custom color grade (`ColorGradeFilter`) and FXAA.
 
 Screenshot helpers (they exit when done):
 - `RACINGSIM_AUTOSHOT=<dir>` saves screenshots into that folder.
@@ -141,8 +141,8 @@ Screenshot helpers (they exit when done):
 | Section | Where | What's there |
 |---|---|---|
 | **Pit entry** | Exit of Turn 4 | A painted divider on the apron separates the entry lane from the racing surface. The lane then curves in behind the end of the pit wall. |
-| **Pit lane** | Inside the front straight, behind a concrete pit wall | A fast lane, then **33 pit boxes of 24 m each**, then a pit stand with a coloured canopy behind each box, then the pit back wall. White speed-limit lines cross the lane at both ends. |
-| **Your box** | Box 17, the middle one, centred on the start/finish line | Painted **solid yellow**, with a yellow-canopied pit stand ([screenshot](docs/pit-box.png)). |
+| **Pit lane** | Inside the front straight, behind a concrete pit wall | A fast lane, then **33 pit boxes of 24 m each**, then a pit stand with a colored canopy behind each box, then the pit back wall. White speed-limit lines cross the lane at both ends. |
+| **Your box** | Box 17, the middle one, centerd on the start/finish line | Painted **solid yellow**, with a yellow-canopied pit stand ([screenshot](docs/pit-box.png)). |
 | **Pit exit** | Turns 1 and 2 | The pit exit is a separate paved lane on the inside of the race track. A grass median separates it from the track's narrowed apron, and it has white edge lines. At the exit of Turn 2 the median tapers away and the lane merges onto the race track ([Turn 1](docs/pit-exit-lane-turn1.png), [Turn 2](docs/pit-exit-lane-turn2.png), [merge](docs/pit-exit-lane-merge.png)). |
 
 The pit road, exit lane and walls are part of the physics collider, so you can drive through. Grass strips such as the exit-lane median have grass grip. The off-track safety net treats the pit complex as part of the track. See [Pit stops](#pit-stops) for how stops work.
@@ -153,7 +153,7 @@ All sound is synthesized at startup by `audio/SoundSynth`, so there are no audio
 | Sound | How it's made | What drives it in the game |
 |---|---|---|
 | **V8 engine** | Two loops, recorded at 4,500 and 9,500 rpm, built from per-cylinder exhaust pulses, crank-order harmonics and combustion noise | Pitch follows the real engine rpm (the loops crossfade between 6,000 and 8,500 rpm); louder on throttle, quieter on lift-off and gear shifts |
-| **Tire squeal** | Wobbling tonal squeal plus band-passed scrub noise | Slip angle or slip ratio beyond the grip peak, on tarmac only |
+| **Tire squeal** | Wobbling tonal squeal plus band-passed scrub noise | Slip angle or slip ratio beyond the grip peak, on asphalt only |
 | **Wind** | Filtered noise | Rises with speed |
 | **AI engines** | One positional engine per car | Doppler-shifted relative to your car, so they whoosh past |
 
@@ -162,14 +162,14 @@ All sound is synthesized at startup by `audio/SoundSynth`, so there are no audio
 ## Off-track ground
 Two colliders make up the ground:
 - **Track collider:** the racing surface, apron and walls.
-- **Ground plane:** an infinite static plane under the whole world. The wheels sense it as grass, with 55% of tarmac grip and much more rolling drag.
+- **Ground plane:** an infinite static plane under the whole world. The wheels sense it as grass, with 55% of asphalt grip and much more rolling drag.
 
 ## Wall and car impacts
 The car body is a rigid box, and on its own a rigid box hitting a triangle-mesh wall at racing speed behaves like a rubber ball: contacts on the wall's edges and seams get tilted normals, and every impact returns its energy as roll and lift. Two things keep crashes on the ground:
 - **Vertical walls push sideways only.** `physics/WallContactFilter` makes every contact with a wall's side face horizontal. Without it, a 15° hit at 100 m/s threw the car up to 23 m.
 - **Crash energy absorption.** `VehiclePhysics.absorbImpact` stands in for crushable bodywork, tires and suspension. When a Bullet step changes a car's velocity by an impact-sized amount (more than 0.6 m/s or 0.4 rad/s in one 1/240 s tick), the car keeps only 25% of the collision's roll and pitch kick and 20% of its upward kick. The spin, and the sideways and braking parts of the hit, stay fully physical. A car that clips the wall now spins and slides along it, but stays on its wheels.
 
-`./gradlew wallCheck` fires a car into the outer wall 54 times: on the straight and in a banked turn, at 40, 70 and 100 m/s, at 5°, 15° and 30°, and nose first, sideways and backwards. It reports how high the car is thrown and whether it flips or clears the wall. Before the fixes the worst case was a 23.6 m rise, with 5 cars over the wall and 6 upside down. After the fixes the worst case is 0.36 m, with none over the wall and none upside down.
+`./gradlew wallCheck` fires a car into the outer wall 54 times: on the straight and in a banked turn, at 40, 70 and 100 m/s, at 5°, 15° and 30°, and nose first, sideways and backward. It reports how high the car is thrown and whether it flips or clears the wall. Before the fixes the worst case was a 23.6 m rise, with 5 cars over the wall and 6 upside down. After the fixes the worst case is 0.36 m, with none over the wall and none upside down.
 
 A car that still gets over a wall lands and rolls on solid ground. If you're stuck outside the retaining walls for 3 s, upside down for 2 s, or (as a last resort) below the world, the car is put back on the track where it left it.
 

@@ -2,7 +2,7 @@ package com.racingsim.vehicle;
 
 /**
  * Physical parameters of the open-wheel car. Local car frame: +Z forward, +Y up,
- * +X to the car's LEFT. The rigid-body origin is the centre of mass.
+ * +X to the car's LEFT. The rigid-body origin is the center of mass.
  */
 public final class VehicleSpec {
 
@@ -13,7 +13,7 @@ public final class VehicleSpec {
     public float rearAxleZ = -1.35f;
     public float frontHalfTrack = 0.86f;
     public float rearHalfTrack = 0.82f;
-    /** Height of the suspension mount points above the centre of mass. */
+    /** Height of the suspension mount points above the center of mass. */
     public float mountHeight = 0.10f;
 
     // ---- Suspension ----

@@ -19,8 +19,8 @@ import java.util.Random;
  * <ul>
  *   <li>a normal map with the bodywork's panel seams and Dzus fasteners,</li>
  *   <li>a packed AO / roughness / metallic map (glossy clear coat, rougher where the car is dirty),</li>
- *   <li>wear masks that {@link LiveryPainter} blends into each car's colours: road grime low on the
- *       sides, rubber "marbles" thrown up by the tyres, stone chips on the nose and front wing and
+ *   <li>wear masks that {@link LiveryPainter} blends into each car's colors: road grime low on the
+ *       sides, rubber "marbles" thrown up by the tires, stone chips on the nose and front wing and
  *       exhaust / brake soot at the back.</li>
  * </ul>
  * Layout and coordinates as in {@link LiveryPainter}.
@@ -42,7 +42,7 @@ public final class BodyDetail {
         return instance;
     }
 
-    /** Island transforms: car metres (y, z) or (y, x) to texture pixels. side 0 = left, 1 = right. */
+    /** Island transforms: car meters (y, z) or (y, x) to texture pixels. side 0 = left, 1 = right. */
     static AffineTransform side(int side, int size) {
         return side == 0
                 ? new AffineTransform(size / L, 0, 0, -0.25 * size / Z_MAX, -Y_MIN * size / L, 0.25 * size)

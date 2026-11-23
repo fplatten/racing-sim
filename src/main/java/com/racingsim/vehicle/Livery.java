@@ -3,7 +3,7 @@ package com.racingsim.vehicle;
 import com.jme3.math.ColorRGBA;
 
 /**
- * Car colour scheme (sRGB colours) and race number. Painted onto the Blender car's livery
+ * Car color scheme (sRGB colors) and race number. Painted onto the Blender car's livery
  * UV layout by {@link LiveryPainter}: {@code primary} = lower body / nose band / wings,
  * {@code secondary} = upper body, {@code accent} = swoosh, pinstripes, nose tip and helmet.
  */

@@ -26,7 +26,7 @@ public final class Main {
 
     /**
      * GraalVM native executable: there is no JDK install, so {@code java.home} is unset and AWT's
-     * font setup (car numbers and tyre lettering are drawn with AWT) fails. Point it at the
+     * font setup (car numbers and tire lettering are drawn with AWT) fails. Point it at the
      * executable's folder, where the release ships {@code lib/fontconfig.bfc}.
      */
     private static void nativeImageJavaHome() {

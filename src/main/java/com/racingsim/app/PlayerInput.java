@@ -12,7 +12,7 @@ import com.jme3.math.FastMath;
 import com.racingsim.vehicle.VehicleInput;
 
 /**
- * Keyboard controls. Digital keys are converted into smooth analogue commands with
+ * Keyboard controls. Digital keys are converted into smooth analog commands with
  * speed-sensitive steering rates.
  * <pre>
  *  W / Up      throttle          S / Down   brake (hold at standstill = reverse)
@@ -97,14 +97,14 @@ public final class PlayerInput implements ActionListener, AnalogListener {
 
     public boolean isMouseSteering() { return mouseSteering; }
 
-    /** Converts key state into analogue vehicle commands (called every physics step). */
+    /** Converts key state into analog vehicle commands (called every physics step). */
     public void apply(VehicleInput in, float dt, float speed) {
         throttleCmd = ramp(throttleCmd, throttle ? 1f : 0f, 6f * dt, 10f * dt);
         brakeCmd = ramp(brakeCmd, brake ? 1f : 0f, 7f * dt, 10f * dt);
         float steerTarget = (left ? 1f : 0f) - (right ? 1f : 0f);
         float speedFactor = 1f / (1f + Math.abs(speed) / 50f);
         float rate = (steerTarget != 0f ? 3.0f : 5.0f) * speedFactor * dt;
-        // returning through centre is quicker than winding on lock
+        // returning through center is quicker than winding on lock
         if (steerTarget != 0f && Math.signum(steerTarget) != Math.signum(steerCmd)) rate *= 1.8f;
         if (mouseSteering) {
             // follow the mouse wheel position with a tiny smoothing lag

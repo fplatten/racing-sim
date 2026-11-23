@@ -69,7 +69,7 @@ public final class LiveryPainter {
                     1.0, 0.370, 1.8, 0.400, 2.7, 0.420, 2.7, -0.2));
             // airbox / roll hoop
             s.fill(poly(-0.25, 0.64, 0.9, 0.60, 1.35, 0.50, 1.35, 1.3, -0.25, 1.3));
-            // pinstripe along the colour break on the nose
+            // pinstripe along the color break on the nose
             s.setColor(accent);
             s.setStroke(new BasicStroke(0.018f));
             s.draw(poly(-2.45, 0.195, -1.9, 0.255, -1.2, 0.320, -0.6, 0.350, 0.2, 0.365));
@@ -114,7 +114,7 @@ public final class LiveryPainter {
         s.fill(topIsland);
         AffineTransform base = s.getTransform();
         s.transform(top);
-        // nose centre band
+        // nose center band
         Shape noseBand = poly(-2.55, -0.06, -1.6, -0.12, -0.92, -0.17, -0.92, 0.17, -1.6, 0.12, -2.55, 0.06);
         s.setColor(primary);
         s.fill(noseBand);
@@ -168,13 +168,13 @@ public final class LiveryPainter {
         return tex;
     }
 
-    /** Draws an outlined race number centred at car coordinates (a, b) of the given island transform. */
+    /** Draws an outlined race number centerd at car coordinates (a, b) of the given island transform. */
     private static void drawNumber(Graphics2D g, int number, AffineTransform t, double a, double b,
-                                   double heightMetres, double rotation, Color fill, Color edge) {
+                                   double heightMeters, double rotation, Color fill, Color edge) {
         double[] p = {a, b};
         t.transform(p, 0, p, 0, 1);
-        double pxPerMetre = Math.abs(t.getScaleY());
-        float fontPx = (float) (heightMetres * pxPerMetre * 1.35);
+        double pxPerMeter = Math.abs(t.getScaleY());
+        float fontPx = (float) (heightMeters * pxPerMeter * 1.35);
         Font font = new Font("Arial", Font.BOLD | Font.ITALIC, 10).deriveFont(fontPx);
         GlyphVector gv = font.createGlyphVector(g.getFontRenderContext(), Integer.toString(number));
         Rectangle2D bounds = gv.getVisualBounds();
@@ -223,15 +223,15 @@ public final class LiveryPainter {
     }
 
     /**
-     * A sponsor ad panel ({@link SponsorArt}) centred at car coordinates (a, b) of an island
-     * transform: heightMetres tall, maxLength metres long, rotated like text.
+     * A sponsor ad panel ({@link SponsorArt}) centerd at car coordinates (a, b) of an island
+     * transform: heightMeters tall, maxLength meters long, rotated like text.
      */
     private static void decal(Graphics2D g, AffineTransform t, String sponsor, double a, double b,
-                              double heightMetres, double maxLength, double rotation, boolean mascot) {
+                              double heightMeters, double maxLength, double rotation, boolean mascot) {
         double[] p = {a, b};
         t.transform(p, 0, p, 0, 1);
-        double pxPerMetre = Math.abs(t.getScaleY());
-        SponsorArt.panel(g, SponsorArt.brand(sponsor), p[0], p[1], maxLength * pxPerMetre, heightMetres * pxPerMetre,
+        double pxPerMeter = Math.abs(t.getScaleY());
+        SponsorArt.panel(g, SponsorArt.brand(sponsor), p[0], p[1], maxLength * pxPerMeter, heightMeters * pxPerMeter,
                 rotation, mascot);
     }
 
@@ -243,11 +243,11 @@ public final class LiveryPainter {
                 new SponsorArt.Brand("GEARS", new Color(255, 40, 160), new Color(255, 255, 255), Color.BLACK, SponsorArt.Mascot.TIRE),
                 new SponsorArt.Brand("SEALS", new Color(0, 200, 255), new Color(255, 240, 0), Color.BLACK, SponsorArt.Mascot.TIRE)};
         double w = 0.10, h = 0.05;
-        double pxPerMetre = Math.abs(t.getScaleY());
+        double pxPerMeter = Math.abs(t.getScaleY());
         for (int k = 0; k < stickers.length; k++) {
             double[] p = {y0 + w / 2 + k * w, z};
             t.transform(p, 0, p, 0, 1);
-            SponsorArt.panel(g, stickers[k], p[0], p[1], w * pxPerMetre, h * pxPerMetre, 0, false);
+            SponsorArt.panel(g, stickers[k], p[0], p[1], w * pxPerMeter, h * pxPerMeter, 0, false);
         }
     }
 
@@ -275,10 +275,10 @@ public final class LiveryPainter {
                 grime *= inv; marbles *= inv; chips *= inv; soot *= inv;
                 int c = row[x];
                 float r = (c >> 16 & 0xFF), gg = (c >> 8 & 0xFF), b = (c & 0xFF);
-                // road grime: a brown-grey film
+                // road grime: a brown-gray film
                 float k = grime * 0.55f;
                 r += (96 - r) * k; gg += (88 - gg) * k; b += (80 - b) * k;
-                // soot: dark grey
+                // soot: dark gray
                 k = soot * 0.65f;
                 r += (38 - r) * k; gg += (36 - gg) * k; b += (35 - b) * k;
                 // stone chips expose dark composite

@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Random;
 
 /**
- * Tyre smoke: when a tyre slides sideways past its grip peak (or locks up / spins hard), puffs of
+ * Tire smoke: when a tire slides sideways past its grip peak (or locks up / spins hard), puffs of
  * smoke billow from its contact patch, then grow, drift up and fade. One shared world-space particle
  * pool serves every car; puffs are emitted per wheel from the slip each frame (fractional amounts
  * carry over, so light slides give a thin wisp and big slides a thick cloud). The puff sprites are
@@ -30,13 +30,13 @@ import java.util.Random;
  */
 public final class TireSmoke {
 
-    private static final int MAX_PARTICLES = 2400;
+    private static final int MAX_PARTICLES = 900;
     /** Puffs per second from one wheel at full slide. */
-    private static final float MAX_RATE = 130f;
+    private static final float MAX_RATE = 45f;
 
     private final ParticleEmitter emitter;
     /**
-     * Puffs start anywhere in a small box above the tyre's contact patch, so the cloud has a ragged
+     * Puffs start anywhere in a small box above the tire's contact patch, so the cloud has a ragged
      * outline. They start above the road and rise faster than they grow, so no puff ever dips
      * into the asphalt (a camera-facing quad that does shows a hard, straight cut).
      */
@@ -59,12 +59,12 @@ public final class TireSmoke {
         emitter.setInWorldSpace(true);
         emitter.setParticlesPerSec(0);                // emitted by hand from the sliding wheels
         emitter.setShape(box);
-        emitter.setStartColor(new ColorRGBA(0.80f, 0.80f, 0.80f, 0.20f));
+        emitter.setStartColor(new ColorRGBA(0.80f, 0.80f, 0.80f, 0.30f));
         emitter.setEndColor(new ColorRGBA(0.86f, 0.86f, 0.87f, 0f));
-        emitter.setStartSize(0.5f);
-        emitter.setEndSize(3.2f);
-        emitter.setLowLife(1.6f);
-        emitter.setHighLife(3.2f);
+        emitter.setStartSize(0.6f);
+        emitter.setEndSize(3.0f);
+        emitter.setLowLife(1.2f);
+        emitter.setHighLife(2.4f);
         emitter.setGravity(0f, -0.45f, 0f);           // negative gravity: warm smoke keeps rising
         emitter.setRotateSpeed(0.6f);
         emitter.setRandomAngle(true);
@@ -94,7 +94,7 @@ public final class TireSmoke {
                 if (n == 0) continue;
                 acc[i] -= n;
                 VehiclePhysics.Wheel w = wheels[i];
-                // contact patch: below the wheel centre, in the car's local frame
+                // contact patch: below the wheel center, in the car's local frame
                 local.set(w.mountLocal.x, w.mountLocal.y - w.suspensionLength - car.getSpec().wheelRadius + 0.30f,
                         w.mountLocal.z);
                 car.getNode().localToWorld(local, world);
@@ -138,7 +138,7 @@ public final class TireSmoke {
                     float r = (float) Math.sqrt(dx * dx + dy * dy);
                     float n = 0.65f * noise[y * cell + x] + 0.35f * fine[y * cell + x];
                     float falloff = (float) Math.exp(-r * r * 4.0);              // soft gaussian blob
-                    // billows: a few soft lobes around the centre rather than grid-aligned noise
+                    // billows: a few soft lobes around the center rather than grid-aligned noise
                     double ang = Math.atan2(dy, dx);
                     float lobes = (float) (0.5 + 0.5 * Math.sin(ang * 3 + k * 1.7) * Math.sin(ang * 5 - k));
                     float a = TireTexture.clamp01(falloff * (0.70f + 0.20f * n + 0.25f * lobes * r) - 0.03f) * (r < 1f ? 1f : 0f);

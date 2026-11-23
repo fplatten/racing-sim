@@ -21,8 +21,8 @@ import java.util.Random;
  * <pre>
  *   0.00-0.30 inner sidewall   0.30-0.38 shoulder   0.38-0.62 tread   0.62-0.70 shoulder   0.70-1.00 outer sidewall
  * </pre>
- * Produces three maps that share one height field: albedo (scrubbed grey tread, satin black
- * sidewalls with pale moulded lettering, rubber pick-up near the shoulders), a tangent-space normal
+ * Produces three maps that share one height field: albedo (scrubbed gray tread, satin black
+ * sidewalls with pale molded lettering, rubber pick-up near the shoulders), a tangent-space normal
  * map (raised lettering, graining, pick-up blobs) and a packed AO / roughness / metallic map.
  */
 public final class TireTexture {
@@ -56,7 +56,7 @@ public final class TireTexture {
                 int i = y * W + x;
                 float g = grainNoise[i];
                 float b = blotch[i];
-                // tread: scrubbed, slightly lighter grey with circumferential grain
+                // tread: scrubbed, slightly lighter gray with circumferential grain
                 float tread = 0.115f + 0.03f * (streak[y] - 0.5f) + 0.035f * (g - 0.5f) + 0.02f * (b - 0.5f);
                 // sidewall: satin black, faint mottling
                 float side = 0.075f + 0.012f * (b - 0.5f) + 0.006f * rnd.nextFloat();
@@ -77,7 +77,7 @@ public final class TireTexture {
             }
         }
 
-        // moulded sidewall lettering (pale grey paint over raised rubber), both sidewalls
+        // molded sidewall lettering (pale gray paint over raised rubber), both sidewalls
         BufferedImage text = new BufferedImage(W, H, BufferedImage.TYPE_BYTE_GRAY);
         Graphics2D g = text.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -133,7 +133,7 @@ public final class TireTexture {
     private static void drawSidewall(Graphics2D g, float v0, float v1, boolean flip) {
         double top = (1 - v1) * H, bottom = (1 - v0) * H;
         double bandH = bottom - top;
-        // texels per metre are ~2.4x denser across the sidewall than around it: squash the glyphs
+        // texels per meter are ~2.4x denser across the sidewall than around it: squash the glyphs
         double squash = 0.42;
         Font big = new Font("Arial", Font.BOLD, 10).deriveFont((float) (bandH * 0.95));
         Font small = new Font("Arial", Font.BOLD, 10).deriveFont((float) (bandH * 0.42));
@@ -148,7 +148,7 @@ public final class TireTexture {
                 double cy = (top + bottom) / 2;
                 AffineTransform t = new AffineTransform();
                 t.translate(cx, cy);
-                // Seen from outside the lathe u runs counter-clockwise and v grows towards the bead,
+                // Seen from outside the lathe u runs counter-clockwise and v grows toward the bead,
                 // so upright text on the outer sidewall lands rotated by 180 degrees: pre-rotate it.
                 if (flip) t.rotate(Math.PI);
                 t.scale(squash, 1.0);
@@ -199,7 +199,7 @@ public final class TireTexture {
 
     /**
      * Tangent-space normal map (OpenGL / Y+ convention) from a height field; image row 0 is the
-     * top of the texture (v = 1), so +v is towards smaller rows.
+     * top of the texture (v = 1), so +v is toward smaller rows.
      */
     static BufferedImage normalMap(float[] h, int w, int hgt, float strength) {
         BufferedImage img = new BufferedImage(w, hgt, BufferedImage.TYPE_INT_ARGB);
@@ -208,7 +208,7 @@ public final class TireTexture {
             for (int x = 0; x < w; x++) {
                 int xl = (x - 1 + w) % w, xr = (x + 1) % w;
                 float dx = (h[y * w + xr] - h[y * w + xl]) * 0.5f;
-                float dv = (h[yu * w + x] - h[yd * w + x]) * 0.5f;     // d/dv (v grows upwards)
+                float dv = (h[yu * w + x] - h[yd * w + x]) * 0.5f;     // d/dv (v grows upward)
                 float nx = -dx * strength, ny = -dv * strength, nz = 1f;
                 float len = (float) Math.sqrt(nx * nx + ny * ny + nz * nz);
                 int r = Math.round((nx / len * 0.5f + 0.5f) * 255f);

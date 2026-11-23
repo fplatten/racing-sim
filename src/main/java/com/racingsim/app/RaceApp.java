@@ -38,7 +38,7 @@ import java.util.Random;
  * The game: shows a splash screen with a loading bar while the world is built step by step (one
  * step per frame so the bar animates), then runs MENU (race length 5 / 10 laps, 1-32 opponents, the
  * player's starting position, 0-3 mandatory pit stops) -> RACE (rolling start three abreast from the beginning of the
- * front straight, off the last turn) -> RESULTS (chequered flag) -> back to the MENU.
+ * front straight, off the last turn) -> RESULTS (checkered flag) -> back to the MENU.
  * AI cars are created on demand (up to a 33-car field) and reused between races.
  */
 public final class RaceApp extends SimpleApplication implements ActionListener {
@@ -240,7 +240,7 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
         setupAutoShots(player);
     }
     // ------------------------------------------------------------------ the field
-    /** AI opponent {@code i} (0-based), created the first time it is needed and reused afterwards. */
+    /** AI opponent {@code i} (0-based), created the first time it is needed and reused afterward. */
     private Car aiCar(int i) {
         while (aiPool.size() <= i) {
             Livery livery = Livery.forIndex(aiPool.size() + 1);
@@ -618,9 +618,9 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
         float midS = RaceDirector.gridSlot(cars / 2, cars)[0];
         float sweep = FastMath.sin(orbitAngle);
         Vector3f eye = track.point(midS + 32f * sweep, -13f + 3f * FastMath.cos(orbitAngle * 0.7f), null).addLocal(0, 4.5f, 0);
-        Vector3f centre = track.point(midS + 8f * sweep, 0.5f, null);
+        Vector3f center = track.point(midS + 8f * sweep, 0.5f, null);
         cam.setLocation(eye);
-        cam.lookAt(centre.add(0, 0.4f, 0), Vector3f.UNIT_Y);
+        cam.lookAt(center.add(0, 0.4f, 0), Vector3f.UNIT_Y);
     }
 
     // ------------------------------------------------------------------ automated screenshots
@@ -664,7 +664,7 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
         }
 
         if (System.getenv("RACINGSIM_SHOT_SKID") != null) {
-            // tyre smoke screenshots: kick the player's car into a sideways slide (yaw rate, rad/s)
+            // tire smoke screenshots: kick the player's car into a sideways slide (yaw rate, rad/s)
             float yaw = Float.parseFloat(System.getenv("RACINGSIM_SHOT_SKID"));
             player.getBody().setAngularVelocity(new Vector3f(0, yaw, 0));
         }

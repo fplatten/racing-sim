@@ -16,7 +16,7 @@ import java.awt.geom.Rectangle2D;
 import java.awt.geom.RoundRectangle2D;
 
 /**
- * Loud die-cut sponsor stickers for the liveries: each fictional brand has a garish colour scheme,
+ * Loud die-cut sponsor stickers for the liveries: each fictional brand has a garish color scheme,
  * its own cartoon mascot and a lettering layout (straight, arched or growing). There is no plate:
  * black and neon contours are grown around the letters and the mascot, so the sticker's edge
  * follows their shapes. Everything is drawn with Java2D shapes (no image files).
@@ -25,7 +25,7 @@ final class SponsorArt {
 
     enum Mascot { TIRE, FLAME, BOLT, DROP, SUN, FISH, ROBOT, MOUNTAIN }
 
-    /** bg = plate colour, text = lettering, accent = stripe / mascot body, mascot = character. */
+    /** bg = plate color, text = lettering, accent = stripe / mascot body, mascot = character. */
     record Brand(String name, Color bg, Color text, Color accent, Mascot mascot) { }
 
     private static Color c(int r, int g, int b) {
@@ -55,7 +55,7 @@ final class SponsorArt {
     private SponsorArt() { }
 
     /**
-     * Draws an ad panel centred at pixel (cx, cy), w x h pixels, rotated by {@code rotation}
+     * Draws an ad panel centerd at pixel (cx, cy), w x h pixels, rotated by {@code rotation}
      * (the panel's "up" follows the rotation, like text).
      */
     static void panel(Graphics2D g0, Brand brand, double cx, double cy, double w, double h, double rotation,
@@ -93,7 +93,7 @@ final class SponsorArt {
                     t.rotate(Math.atan(slope));
                     t.translate(-gb.getCenterX(), 0);
                 }
-                case RISING -> {                                         // letters grow towards the end
+                case RISING -> {                                         // letters grow toward the end
                     double sc = 0.78 + 0.44 * (u + 0.5);
                     t.translate(gb.getCenterX(), 0);
                     t.scale(sc, sc);
@@ -105,7 +105,7 @@ final class SponsorArt {
         }
         Rectangle2D wb = word.getBounds2D();
         double fit = Math.min(textW / wb.getWidth(), textH / wb.getHeight());
-        // the word starts right after the mascot; a short word leaves room, so centre the pair
+        // the word starts right after the mascot; a short word leaves room, so center the pair
         double shift = (textW - wb.getWidth() * fit) / 2;
         mx += shift;
         AffineTransform place = new AffineTransform();

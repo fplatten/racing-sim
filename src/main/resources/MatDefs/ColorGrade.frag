@@ -7,7 +7,7 @@ uniform float m_Vignette;
 uniform vec4 m_Tint;
 varying vec2 texCoord;
 
-// Simple grade in linear space: saturation, contrast pivoting on mid grey (0.18), tint, vignette.
+// Simple grade in linear space: saturation, contrast pivoting on mid gray (0.18), tint, vignette.
 void main() {
     vec4 c = texture2D(m_Texture, texCoord);
     vec3 col = max(c.rgb, vec3(0.0));

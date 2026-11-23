@@ -11,7 +11,7 @@ public final class Pbr {
 
     private Pbr() { }
 
-    /** @param srgb base colour given in sRGB (converted to linear for the shader) */
+    /** @param srgb base color given in sRGB (converted to linear for the shader) */
     public static Material material(AssetManager assets, ColorRGBA srgb, float metallic, float roughness) {
         Material m = new Material(assets, "Common/MatDefs/Light/PBRLighting.j3md");
         m.setColor("BaseColor", linear(srgb));

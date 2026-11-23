@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Lap counting, lap timing, race order and the chequered flag, from continuous track
+ * Lap counting, lap timing, race order and the checkered flag, from continuous track
  * progress {@code s}. Each entry accumulates total distance; crossing s = 0 forward starts a
  * new lap. Cars start behind the line (lap 0); the first crossing starts lap 1 and an entry
  * finishes when it completes {@link #getRaceLaps()} laps.
@@ -86,7 +86,7 @@ public final class LapTracker {
 
     public boolean leaderFinished() { return finishedCount > 0; }
 
-    /** Re-initialises an entry for a car placed at startS (new race). */
+    /** Re-initializes an entry for a car placed at startS (new race). */
     public void reset(Entry e, float startS) {
         resetEntry(e, startS);
         e.lapStartTime = Float.NaN;
@@ -106,7 +106,7 @@ public final class LapTracker {
         return e;
     }
 
-    /** Initialise progress for a car placed at startS (cars behind the line are on lap 0). */
+    /** Initialize progress for a car placed at startS (cars behind the line are on lap 0). */
     private void resetEntry(Entry e, float startS) {
         float s = TrackSpline.wrapS(startS);
         e.lastS = s;
@@ -143,13 +143,13 @@ public final class LapTracker {
             if (newLap == 0 && Float.isNaN(raceStartTime)) raceStartTime = time;   // green flag
             e.lapStartTime = time;
             e.lapIndex = newLap;
-            if (!e.finished && newLap >= raceLaps) {                                // chequered flag
+            if (!e.finished && newLap >= raceLaps) {                                // checkered flag
                 e.finished = true;
                 e.finishOrder = ++finishedCount;
                 e.finishTime = raceTime();
             }
         } else if (newLap < e.lapIndex) {
-            e.lapIndex = newLap; // driving backwards over the line
+            e.lapIndex = newLap; // driving backward over the line
         }
     }
 
@@ -159,7 +159,7 @@ public final class LapTracker {
 
     /**
      * Re-sorts race order: finishers who made their mandatory pit stops in finishing order, then
-     * the cars still running by distance, then finishers who missed a mandatory stop (penalised
+     * the cars still running by distance, then finishers who missed a mandatory stop (penalized
      * to the back of the classification).
      */
     public void updatePositions() {

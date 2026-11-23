@@ -3,7 +3,7 @@
     blender --background --factory-startup --python blender/make_sky.py
 
 The sun is placed at SUN_ELEVATION / SUN_AZIMUTH (degrees, azimuth measured in Blender's XY
-plane from +X towards +Y). The game reads the same values to align its directional light.
+plane from +X toward +Y). The game reads the same values to align its directional light.
 """
 import math
 import os
@@ -83,7 +83,7 @@ def build_world():
     shape = noise(0.55, 10.0, 0.58, (0, 0, 0))
     coverage = noise(0.18, 2.0, 0.5, (11.3, 4.1, 0))
     sun = sun_vector()
-    # density sampled slightly towards the sun -> fake self shadowing
+    # density sampled slightly toward the sun -> fake self shadowing
     shade = noise(0.55, 10.0, 0.58, (-sun[0] * 0.06, -sun[1] * 0.06, 0))
 
     def ramp(src, a, b):
@@ -116,7 +116,7 @@ def build_world():
     L(lit_f, cloud_col.inputs["Factor"])
     L(shadow_col.outputs[0], cloud_col.inputs[6]); L(bright_col.outputs[0], cloud_col.inputs[7])
 
-    # clouds pick up sky light: multiply by a dimmed sky colour + constant
+    # clouds pick up sky light: multiply by a dimmed sky color + constant
     sky_tint = N("ShaderNodeMix"); sky_tint.data_type = "RGBA"; sky_tint.blend_type = "MULTIPLY"
     sky_tint.inputs["Factor"].default_value = 0.35
     L(cloud_col.outputs[2], sky_tint.inputs[6]); L(sky.outputs[0], sky_tint.inputs[7])
@@ -128,7 +128,7 @@ def build_world():
     final = N("ShaderNodeMix"); final.data_type = "RGBA"
     L(dens.outputs[0], final.inputs["Factor"])
     L(sky.outputs[0], final.inputs[6]); L(scale.outputs[2], final.inputs[7])
-    # lower hemisphere: asphalt / grass coloured ground for reflections and the light probe
+    # lower hemisphere: asphalt / grass colored ground for reflections and the light probe
     ground = N("ShaderNodeRGB"); ground.outputs[0].default_value = (CLOUD_K * 0.13, CLOUD_K * 0.13, CLOUD_K * 0.11, 1)
     below = ramp(sep.outputs["Z"], 0.0, -0.03)
     gmix = N("ShaderNodeMix"); gmix.data_type = "RGBA"
@@ -147,7 +147,7 @@ def build_camera():
         cam_data.cycles.panorama_type = "EQUIRECTANGULAR"
     cam = bpy.data.objects.new("Pano", cam_data)
     bpy.context.scene.collection.objects.link(cam)
-    cam.rotation_euler = (math.radians(90), 0, math.radians(-90))  # centre of image = +X
+    cam.rotation_euler = (math.radians(90), 0, math.radians(-90))  # center of image = +X
     bpy.context.scene.camera = cam
 
 

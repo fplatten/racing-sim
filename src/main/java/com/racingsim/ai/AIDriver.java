@@ -14,7 +14,7 @@ import java.util.List;
  * AI driver producing throttle/brake/steering for a {@link Car} that runs on exactly the
  * same {@link VehiclePhysics} as the player.
  * <ul>
- *   <li>Steering: Pure Pursuit towards a look-ahead point on a dynamic lateral target
+ *   <li>Steering: Pure Pursuit toward a look-ahead point on a dynamic lateral target
  *       (racing line blended with a passing / avoidance lane), plus an integral loop on
  *       actual vs. desired path curvature that compensates for tire slip.</li>
  *   <li>Speed: pre-computed corner-entry speed profile + traffic speed caps.</li>
@@ -69,7 +69,7 @@ public final class AIDriver {
     private float steerIntegral;
     /** Integral gain of the curvature-tracking steering loop (rad per (1/m) per s). */
     private static final float CURVATURE_GAIN = 18f;
-    /** Lane-keeping terms: rad per metre of lateral error, rad per m/s of lateral velocity. */
+    /** Lane-keeping terms: rad per meter of lateral error, rad per m/s of lateral velocity. */
     private static final float LATERAL_GAIN = 0.0025f, LATERAL_DAMPING = 0.006f;
     private final Quaternion rot = new Quaternion();
 
@@ -334,7 +334,7 @@ public final class AIDriver {
         if (Math.abs(v) < 3f) stuckTime += dt; else stuckTime = 0f;
     }
 
-    /** Pure pursuit towards (sAhead, dAhead) plus curvature integral and lane-keeping damping. */
+    /** Pure pursuit toward (sAhead, dAhead) plus curvature integral and lane-keeping damping. */
     private void steer(float dt, float d, float v, float sAhead, float dAhead, float intendedNow) {
         VehicleInput in = car.getInput();
         track.point(sAhead, dAhead, target);
@@ -377,7 +377,7 @@ public final class AIDriver {
         in.steer = steerCmd;
     }
 
-    /** Throttle / brake towards vTarget with traction and understeer management. */
+    /** Throttle / brake toward vTarget with traction and understeer management. */
     private void applySpeed(float vTarget, float s, float d, float intended) {
         VehiclePhysics phys = car.getPhysics();
         VehicleInput in = car.getInput();
@@ -453,7 +453,7 @@ public final class AIDriver {
         return x * x * (3 - 2 * x);
     }
 
-    private float boxCentre() {
+    private float boxCenter() {
         return com.racingsim.track.PitLane.stallStart(pit.stall()) + com.racingsim.track.PitLane.STALL_LENGTH / 2f;
     }
 
@@ -461,7 +461,7 @@ public final class AIDriver {
     private float pitPathD(float sq) {
         float r = com.racingsim.track.PitLane.rel(sq);
         if (pitPhase == PitPhase.IN) {
-            float boxC = boxCentre();
+            float boxC = boxCenter();
             if (r < PIT_COMMIT_REL) return line.offset(sq);
             if (r < PIT_MOVE_END_REL) {
                 return FastMath.interpolateLinear(smooth((r - PIT_COMMIT_REL) / (PIT_MOVE_END_REL - PIT_COMMIT_REL)),
@@ -517,7 +517,7 @@ public final class AIDriver {
             stuckTime = 10f;
             return;
         }
-        if (pitPhase == PitPhase.IN && r > boxCentre() + 6f) {          // overshot the box: drive on out
+        if (pitPhase == PitPhase.IN && r > boxCenter() + 6f) {          // overshot the box: drive on out
             pitPhase = PitPhase.OUT;
             stopRel = r;
         }
@@ -561,7 +561,7 @@ public final class AIDriver {
         if (pitPhase == PitPhase.IN) {
             float toLimit = Math.max(0f, com.racingsim.track.PitLane.WALL_START - r);
             vTarget = Math.min(vTarget, FastMath.sqrt(PIT_SPEED * PIT_SPEED + 2f * PIT_DECEL * toLimit));
-            float toStop = boxCentre() - 2f - r;
+            float toStop = boxCenter() - 2f - r;
             vTarget = Math.min(vTarget, 1.0f + FastMath.sqrt(2f * 3f * Math.max(0f, toStop)));
         } else {
             if (onPitRoad) vTarget = Math.min(vTarget, PIT_SPEED);
@@ -592,7 +592,7 @@ public final class AIDriver {
         }
         applySpeed(Math.max(vTarget, 0f), s, d, dNow);
         if (pitPhase == PitPhase.OUT && r < stopRel + 25f) in.throttle = Math.min(in.throttle, 0.5f);
-        if (waiting || (pitPhase == PitPhase.IN && boxCentre() - r < 3f && Math.abs(r - boxCentre()) < 10f)) {
+        if (waiting || (pitPhase == PitPhase.IN && boxCenter() - r < 3f && Math.abs(r - boxCenter()) < 10f)) {
             in.throttle = 0f;
             in.brake = Math.abs(v) < 1.5f ? HOLD_BRAKE : 1f;
         }

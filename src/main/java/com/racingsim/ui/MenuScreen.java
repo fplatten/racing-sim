@@ -41,7 +41,7 @@ public final class MenuScreen {
     private final String[] labels = {"RACE LENGTH", "OPPONENTS", "STARTING POSITION", "PIT STOPS", "DOWNFORCE"};
     private final BitmapText[] labelTexts = new BitmapText[ROWS], valueTexts = new BitmapText[ROWS];
     private final Geometry[] rowBoxes = new Geometry[ROWS];
-    private final float[] valueCentres = new float[ROWS];
+    private final float[] valueCenters = new float[ROWS];
 
     private int row;
     private int lapIndex = 0;
@@ -71,7 +71,7 @@ public final class MenuScreen {
             float y = py + ph - 250 - i * (boxH + 14);
             rowBoxes[i] = rect(x, y, boxW, boxH, IDLE, 0.2f);
             labelTexts[i] = text(labels[i], base * 1.15f, ColorRGBA.White, x + 22, y + boxH - 14);
-            valueCentres[i] = x + boxW - 130;
+            valueCenters[i] = x + boxW - 130;
             valueTexts[i] = text("", base * 1.4f, ColorRGBA.White, 0, y + boxH - 10);
             if (i == DOWNFORCE_ROW) {
                 // slider: SPEED (min downforce) .. CONTROL (max downforce)
@@ -174,7 +174,7 @@ public final class MenuScreen {
             labelTexts[i].setColor(on ? ColorRGBA.White : DIM);
             valueTexts[i].setText(i == DOWNFORCE_ROW ? "" : (on ? "<  " : "") + values[i] + (on ? "  >" : ""));
             valueTexts[i].setColor(on ? ColorRGBA.White : DIM);
-            valueTexts[i].setLocalTranslation(valueCentres[i] - valueTexts[i].getLineWidth() / 2,
+            valueTexts[i].setLocalTranslation(valueCenters[i] - valueTexts[i].getLineWidth() / 2,
                     valueTexts[i].getLocalTranslation().y, 1);
         }
         boolean on = row == DOWNFORCE_ROW;

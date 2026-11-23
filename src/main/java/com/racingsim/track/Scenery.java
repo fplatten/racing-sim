@@ -30,12 +30,12 @@ import static com.racingsim.track.TrackSpline.*;
 public final class Scenery {
 
     private static final float MODULE = 40f;
-    /** Leaf colour multipliers: natural, darker / bluer, lighter / yellower. */
+    /** Leaf color multipliers: natural, darker / bluer, lighter / yellower. */
     private static final ColorRGBA[] LEAF_TINTS = {
             new ColorRGBA(0.86f, 0.88f, 0.80f, 1f), new ColorRGBA(0.70f, 0.80f, 0.76f, 1f), new ColorRGBA(0.98f, 0.94f, 0.70f, 1f)};
     /** Trees are batched per square cell of this size (m) so off-screen woods are culled. */
     private static final float TREE_CELL = 250f;
-    /** Distant tree lines: offsets from the centreline (m) and heights. */
+    /** Distant tree lines: offsets from the centerline (m) and heights. */
     private static final float NEAR_TREELINE_D = 330f, NEAR_TREELINE_H = 22f;
     private static final float FAR_TREELINE_D = 560f, FAR_TREELINE_H = 30f;
 
@@ -75,8 +75,8 @@ public final class Scenery {
         materials.put("Lamp", lamp);
         materials.put("Bark", Pbr.textured(assets, "Textures/Props/bark_albedo.png", "Textures/Props/bark_normal.png",
                 null, 0f, 0.92f));
-        // leaf cards (blender/make_foliage.py): alpha-tested atlas, two-sided, vertex-colour AO;
-        // three tints so neighbouring trees differ
+        // leaf cards (blender/make_foliage.py): alpha-tested atlas, two-sided, vertex-color AO;
+        // three tints so neighboring trees differ
         for (int i = 0; i < LEAF_TINTS.length; i++) {
             Material leaves = Pbr.material(assets, LEAF_TINTS[i], 0f, 0.82f);
             leaves.setTexture("BaseColorMap", Pbr.texture(assets, "Textures/Props/leaves_atlas.png", true));
@@ -141,7 +141,7 @@ public final class Scenery {
 
     /**
      * Places a straight outside-facing module along the chord between sLo and sHi at offset d
-     * (in a turn), stretched a touch so neighbouring modules close up at the back.
+     * (in a turn), stretched a touch so neighboring modules close up at the back.
      */
     private Spatial placeChord(Spatial template, float sLo, float sHi, float d) {
         Spatial sp = template.clone(false);
@@ -274,7 +274,7 @@ public final class Scenery {
                 float u = rnd.nextFloat();
                 int species = u < 0.32f ? OAK : u < 0.60f ? MAPLE : u < 0.86f ? SPRUCE : YOUNG;
                 planted += plant(cells, species, pos, 0.8f + rnd.nextFloat() * 0.45f);
-                // undergrowth where the wood thins out towards the lawn
+                // undergrowth where the wood thins out toward the lawn
                 if (density < 0.6f && rnd.nextFloat() < 0.55f) {
                     Vector3f toTrack = track.centerline(track.project(pos, null).s, new Vector3f()).subtractLocal(pos);
                     toTrack.y = 0;
@@ -294,13 +294,13 @@ public final class Scenery {
         }
         // ---- infield parkland: clumps, lone oaks, shrub groups ----
         for (int k = 0; k < 34; k++) {
-            Vector3f centre = infieldPoint(c, 45f);
-            if (centre == null) continue;
+            Vector3f center = infieldPoint(c, 45f);
+            if (center == null) continue;
             int n = 4 + rnd.nextInt(12);
             float radius = 10f + n * 1.6f;
             for (int i = 0; i < n; i++) {
                 float a = rnd.nextFloat() * FastMath.TWO_PI, rr = radius * FastMath.sqrt(rnd.nextFloat());
-                Vector3f pos = centre.add(FastMath.cos(a) * rr, 0, FastMath.sin(a) * rr);
+                Vector3f pos = center.add(FastMath.cos(a) * rr, 0, FastMath.sin(a) * rr);
                 if (!infieldClear(pos, c, 40f)) continue;
                 float u = rnd.nextFloat();
                 planted += plant(cells, u < 0.45f ? OAK : u < 0.8f ? MAPLE : u < 0.9f ? YOUNG : SPRUCE, pos,
@@ -308,7 +308,7 @@ public final class Scenery {
             }
             for (int i = 0; i < 3 + rnd.nextInt(5); i++) {          // shrubs around the clump
                 float a = rnd.nextFloat() * FastMath.TWO_PI;
-                Vector3f pos = centre.add(FastMath.cos(a) * (radius + 4f), 0, FastMath.sin(a) * (radius + 4f));
+                Vector3f pos = center.add(FastMath.cos(a) * (radius + 4f), 0, FastMath.sin(a) * (radius + 4f));
                 if (infieldClear(pos, c, 35f)) planted += plant(cells, SHRUB, pos, 0.8f + rnd.nextFloat() * 0.6f);
             }
         }
@@ -347,7 +347,7 @@ public final class Scenery {
         return tp.d < PitLane.innerLimit(tp.s) - margin && !tooClose(pos, 20f) && !onServiceRoad(pos, c);
     }
 
-    /** The infield service roads (TrackBuilder.buildServiceRoads): a cross through the centre. */
+    /** The infield service roads (TrackBuilder.buildServiceRoads): a cross through the center. */
     private static boolean onServiceRoad(Vector3f p, Vector3f c) {
         float dx = Math.abs(p.x - c.x), dz = Math.abs(p.z - c.z);
         return (dz < 12f && dx < 610f) || (dx < 12f && dz < 290f);

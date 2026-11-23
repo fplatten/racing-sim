@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * Aerodynamic slipstream evaluation. Run once per physics tick before aero forces are
  * computed: every car checks the cars ahead of it for a wake cone (up to {@link #WAKE_LENGTH}
- * metres behind the leader, within {@link #WAKE_HALF_WIDTH} metres laterally) and derives a
+ * meters behind the leader, within {@link #WAKE_HALF_WIDTH} meters laterally) and derives a
  * {@code draftFactor} in [0, {@link #MAX_DRAFT}].
  */
 public final class DraftingSystem {
@@ -25,7 +25,7 @@ public final class DraftingSystem {
     public static final float WAKE_LENGTH = 60f;
     public static final float WAKE_HALF_WIDTH = 3.5f;
     public static final float MAX_DRAFT = 0.35f;
-    /** Closest centre-to-centre gap considered (two car lengths overlap otherwise). */
+    /** Closest center-to-center gap considered (two car lengths overlap otherwise). */
     private static final float MIN_GAP = 4.5f;
     /** Contribution of additional leaders (draft "trains" give a little more tow). */
     private static final float TRAIN_BONUS = 0.25f;

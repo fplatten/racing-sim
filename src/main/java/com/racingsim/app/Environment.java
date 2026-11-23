@@ -62,7 +62,7 @@ public final class Environment {
 
         // --- post processing ---
         FilterPostProcessor fpp = new FilterPostProcessor(assets);
-        // shadow renderer (not the filter) so the per-geometry receive flags are honoured:
+        // shadow renderer (not the filter) so the per-geometry receive flags are honored:
         // cars cast onto the track but do not self-shadow (no acne on the glossy paint)
         DirectionalLightShadowRenderer shadows = new DirectionalLightShadowRenderer(assets, 4096, 3);
         shadows.setLight(sun);

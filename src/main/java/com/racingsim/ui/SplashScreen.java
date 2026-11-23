@@ -32,7 +32,7 @@ public final class SplashScreen {
     private final java.util.List<Material> fadeMaterials = new java.util.ArrayList<>();
     private final java.util.List<BitmapText> fadeTexts = new java.util.ArrayList<>();
     private final float barX;
-    private float shown;     // displayed progress (eases towards the real value)
+    private float shown;     // displayed progress (eases toward the real value)
 
     public SplashScreen(AssetManager assets, BitmapFont font, float width, float height) {
         this.assets = assets;

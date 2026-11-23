@@ -24,7 +24,7 @@ import static com.racingsim.track.TrackSpline.*;
  * Procedurally generates the oval with PBR-textured surfaces (Blender-made textures, see
  * {@code blender/make_textures.py}): asphalt with a rubbered-in racing groove, painted lines,
  * apron, infield grass, concrete walls, an Indianapolis-style pit lane with 33 boxes (see
- * {@link PitLane}), a chain-link catch fence, a chequered start/finish line,
+ * {@link PitLane}), a chain-link catch fence, a checkered start/finish line,
  * pylons and turn-in boards. The surface meshes double as the static Bullet collider.
  */
 public final class TrackBuilder {
@@ -80,7 +80,7 @@ public final class TrackBuilder {
         paintMat.setTexture("NormalMap", Pbr.texture(assets, "Textures/Track/asphalt_normal.png", true));
         paintMat.setFloat("NormalType", 1f);
         Material grassMat = Pbr.textured(assets, "Textures/Track/grass_albedo.png", "Textures/Track/grass_normal.png", null, 0f, 0.92f);
-        grassMat.setBoolean("UseVertexColor", true);                // same colouring as the ground around it
+        grassMat.setBoolean("UseVertexColor", true);                // same coloring as the ground around it
         Material wallMat = Pbr.textured(assets, "Textures/Track/wall_albedo.png", "Textures/Track/wall_normal.png",
                 "Textures/Track/wall_rough.png", 0f, 1f);
         wallMat.setBoolean("UseVertexColor", true);
@@ -164,7 +164,7 @@ public final class TrackBuilder {
         return new ColorRGBA(g, g, g, 1);
     }
 
-    /** Unworn asphalt shade (vertex colour multiplier on the asphalt texture). */
+    /** Unworn asphalt shade (vertex color multiplier on the asphalt texture). */
     private static final float ASPHALT_SHADE = 0.80f;
     /** Lateral resolution of the visible road (m): fine enough for a smooth groove edge. */
     private static final float GROOVE_STRIP = 0.4f;
@@ -212,7 +212,7 @@ public final class TrackBuilder {
 
     /**
      * Rubber also dulls the asphalt's reflection of the sky, which is most of what you see of the
-     * road at a driver's grazing view angle (vertex colours only darken the diffuse part). The
+     * road at a driver's grazing view angle (vertex colors only darken the diffuse part). The
      * groove is therefore also fed to the PBR shader as an ambient-occlusion value, which scales
      * the specular and image-based light: a second UV channel whose u is the AO value, sampled
      * from a 1-D identity ramp texture.
@@ -387,7 +387,7 @@ public final class TrackBuilder {
             wall.quad(w0, w1, atY(w1, 0), atY(w0, 0), gray(0.85f), outward, uvRect(u0, 0, u1, 1));
         }
 
-        // ---- start/finish line: painted chequered band across the asphalt (centred on s = 0) ----
+        // ---- start/finish line: painted checkered band across the asphalt (centerd on s = 0) ----
         ColorRGBA checkBlack = new ColorRGBA(0.035f, 0.035f, 0.04f, 1);
         int checkCols = 31, checkRows = 3;                      // ~0.5 m squares over the 15.5 m road
         float square = (ROAD_OUTER - ROAD_INNER) / checkCols;
@@ -401,7 +401,7 @@ public final class TrackBuilder {
                         uvRect(s0 / ASPHALT_TILE, d0 / ASPHALT_TILE, s1 / ASPHALT_TILE, d1 / ASPHALT_TILE));
             }
         }
-        // thin white borders either side of the chequers
+        // thin white borders either side of the checkers
         for (float sEdge : new float[]{sStart - 0.12f, -sStart}) {
             paint.quad(p(sEdge, ROAD_INNER, 0.005f), p(sEdge + 0.12f, ROAD_INNER, 0.005f),
                     p(sEdge + 0.12f, ROAD_OUTER, 0.005f), p(sEdge, ROAD_OUTER, 0.005f), PAINT, up,
@@ -458,7 +458,7 @@ public final class TrackBuilder {
         }
     }
 
-    /** Painted stripe of the given width centred on lateral offset d, from rel s0 to s1. */
+    /** Painted stripe of the given width centerd on lateral offset d, from rel s0 to s1. */
     private void stripeAlong(MeshBuilder paint, float s0, float s1, float d, float width, ColorRGBA color) {
         for (float s = s0; s < s1; s += 2f) {
             float e = Math.min(s + 2f, s1);
@@ -531,20 +531,20 @@ public final class TrackBuilder {
         }
 
         // pit stands (timing stands with a canopy) behind each of the 33 boxes; the player's is yellow
-        ColorRGBA[] teamColours = {
+        ColorRGBA[] teamColors = {
                 new ColorRGBA(0.75f, 0.05f, 0.06f, 1), new ColorRGBA(0.06f, 0.18f, 0.60f, 1),
                 new ColorRGBA(0.90f, 0.42f, 0.04f, 1), new ColorRGBA(0.05f, 0.40f, 0.15f, 1),
                 new ColorRGBA(0.10f, 0.10f, 0.12f, 1), new ColorRGBA(0.75f, 0.05f, 0.45f, 1),
                 new ColorRGBA(0.00f, 0.45f, 0.50f, 1), new ColorRGBA(0.85f, 0.85f, 0.87f, 1)};
-        ColorRGBA standGrey = new ColorRGBA(0.30f, 0.31f, 0.33f, 1);
+        ColorRGBA standGray = new ColorRGBA(0.30f, 0.31f, 0.33f, 1);
         for (int k = 0; k < PitLane.STALLS; k++) {
             float sc = (PitLane.stallStart(k) + PitLane.stallStart(k + 1)) / 2f;
             Vector3f fwd = track.forward(sc, null), right = track.right(sc, null);
             Vector3f base = p(sc, -37.2f, 0);
             boolean mine = k == PitLane.PLAYER_STALL;
-            mb.box(base.add(0, 1.1f, 0), fwd, up, right, 1.6f, 1.1f, 0.6f, standGrey);
+            mb.box(base.add(0, 1.1f, 0), fwd, up, right, 1.6f, 1.1f, 0.6f, standGray);
             mb.box(base.add(0, 2.75f, 0), fwd, up, right, 2.0f, 0.08f, 1.1f,
-                    mine ? new ColorRGBA(0.98f, 0.78f, 0.05f, 1) : teamColours[k % teamColours.length]);
+                    mine ? new ColorRGBA(0.98f, 0.78f, 0.05f, 1) : teamColors[k % teamColors.length]);
             for (float side : new float[]{-1.8f, 1.8f}) {
                 mb.box(base.add(fwd.mult(side)).addLocal(0, 1.35f, 0), fwd, up, right, 0.05f, 1.35f, 0.05f, STEEL);
             }
@@ -566,7 +566,7 @@ public final class TrackBuilder {
     }
 
     /**
-     * The land around the track: a flat grid whose vertex colours come from {@link GroundShade}
+     * The land around the track: a flat grid whose vertex colors come from {@link GroundShade}
      * (mown lawns with stripes, rough meadow, darker ground under the woods, large-scale variation
      * that hides the texture tiling). Fine 5 m cells around the track and the woods, coarse 100 m
      * cells out to 2 km. Tangents are written directly (flat ground, u along +x).

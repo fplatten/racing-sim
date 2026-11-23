@@ -3,9 +3,9 @@
     blender --background --factory-startup --python blender/make_props.py
 
 Conventions (Blender frame, exported to glTF Y-up):
-  grandstand: one 40 m module, X along the track, the seating faces -Y (towards the track),
+  grandstand: one 40 m module, X along the track, the seating faces -Y (toward the track),
               front wall base at y = 0, z = 0.
-  others:     centred on the origin, z = 0 ground.
+  others:     centerd on the origin, z = 0 ground.
 Object name prefixes tell the game which material to apply:
   Concrete_, Crowd_, Steel_, Alu_, Banner_, Roof_, Fascia_, Glass_, Paint_, Screen_, Lamp_, Canvas_
   (trees: make_foliage.py)
@@ -106,7 +106,7 @@ def join(objs, name):
 
 # ============================================================================ grandstand
 def grandstand():
-    """Open aluminium bleachers on a steel frame (like the big oval-track grandstands): a concrete
+    """Open aluminum bleachers on a steel frame (like the big oval-track grandstands): a concrete
     front wall with a sponsor banner, 16 rows of footboards and seat planks with open risers, raker
     beams on columns with cross-bracing underneath, an open back with a guard rail, and the
     cantilevered roof. Sky and sunlight show through the frame, between the rows and under the

@@ -16,10 +16,10 @@ import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 
 /**
- * Paints a driver's helmet in the car's colours. The Blender helmet ({@code blender/make_car.py})
+ * Paints a driver's helmet in the car's colors. The Blender helmet ({@code blender/make_car.py})
  * is UV mapped by azimuth and polar angle:
  * <pre>
- *   u = 0.5 + a / 2pi   (a = 0 straight ahead, +pi/2 towards the car's left)
+ *   u = 0.5 + a / 2pi   (a = 0 straight ahead, +pi/2 toward the car's left)
  *   v = 1 - p / 2.4     (p = 0 at the crown)  ->  image row = p / 2.4 * height
  * </pre>
  * Every texel is mapped back to a direction on the shell, so the design is laid out in 3D (stripes
@@ -34,7 +34,7 @@ public final class HelmetPainter {
 
     public static Texture2D paint(Livery livery) {
         Color base = awt(livery.secondary()), main = awt(livery.primary()), accent = awt(livery.accent());
-        // a dark helmet on a dark car disappears: lift the base colour to white
+        // a dark helmet on a dark car disappears: lift the base color to white
         if (lum(base) < 0.25f && lum(main) < 0.25f) base = new Color(235, 235, 235);
         int style = Math.floorMod(livery.number(), 3);
         Color gasket = new Color(22, 22, 25), brow = new Color(12, 12, 14), vent = new Color(40, 40, 44);
@@ -50,7 +50,7 @@ public final class HelmetPainter {
                 double z = Math.cos(p);                          // + = up
                 Color c = base;
                 switch (style) {
-                    case 0 -> {                                   // centre stripe + lower band
+                    case 0 -> {                                   // center stripe + lower band
                         double ax = Math.abs(sx);
                         if (z > -0.25 && ax < 0.16) c = main;
                         else if (z > -0.25 && ax < 0.20) c = accent;

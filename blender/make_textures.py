@@ -16,7 +16,7 @@ T = "Textures/Track"
 
 
 def to_srgb(rgb):
-    """Albedos below are authored as linear reflectance; PNG base colour maps are sRGB."""
+    """Albedos below are authored as linear reflectance; PNG base color maps are sRGB."""
     rgb = np.clip(rgb, 0, 1)
     return np.where(rgb <= 0.0031308, rgb * 12.92, 1.055 * np.power(rgb, 1 / 2.4) - 0.055)
 
@@ -65,7 +65,7 @@ def concrete_wall(w=1024, h=512):
     u = np.linspace(0, 1, w)[None, :] * np.ones((h, 1))
 
     paint = 0.86 + 0.06 * big - 0.05 * fine
-    # grime and tire rubber near the base, streaking upwards
+    # grime and tire rubber near the base, streaking upward
     streaks = fbm(1024, 32, 4, rng)[:h, :w]
     grime = smoothstep(0.7, 1.05, v + 0.15 * (streaks - 0.5)) * 0.7
     scuff_rows = np.zeros_like(v)
@@ -92,8 +92,8 @@ def concrete_wall(w=1024, h=512):
 
 # ----------------------------------------------------------------------------- grass
 def grass(size=1024):
-    """Mown grass (tile = 6 m on the ground). Kept even on purpose: the large-scale colour
-    (stripes, meadow, dry patches, forest floor) comes from the ground mesh vertex colours, so
+    """Mown grass (tile = 6 m on the ground). Kept even on purpose: the large-scale color
+    (stripes, meadow, dry patches, forest floor) comes from the ground mesh vertex colors, so
     nothing here repeats visibly. Blades in two sizes, small clumps, a few dry blades and clover."""
     g = np.random.default_rng(606)                                 # own generator: other textures unchanged
     blades = periodic_value_noise(size, 512, g)
@@ -132,7 +132,7 @@ def chainlink(size=512, diamonds=8):
 # The grandstand crowd atlas is made by make_crowd.py.
 
 
-# ----------------------------------------------------------------------------- carbon fibre
+# ----------------------------------------------------------------------------- carbon fiber
 def carbon(size=256, weaves=8):
     y, x = np.mgrid[0:size, 0:size] / size * weaves
     tx = ((np.floor(x) + np.floor(y)) % 2)

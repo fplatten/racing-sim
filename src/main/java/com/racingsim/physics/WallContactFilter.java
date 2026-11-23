@@ -11,7 +11,7 @@ import com.jme3.math.Vector3f;
  * triangle mesh at speed often gets contact normals from triangle edges / corners (the wall's
  * bottom and top edges, the seams between wall segments) that point well up or down; at 100 m/s
  * the wall stops ~20,000 N*s of sideways momentum, so even a 10 degree tilt throws the car several
- * metres into the air. Contacts with the side faces of the walls are made horizontal here, so the
+ * meters into the air. Contacts with the side faces of the walls are made horizontal here, so the
  * wall only pushes the car sideways (as a real concrete / SAFER barrier does).
  */
 public final class WallContactFilter implements ContactListener {

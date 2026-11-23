@@ -10,9 +10,9 @@ import com.jme3.math.FastMath;
  *  rel  -600 .. -470   pit entry: the lane curves inwards behind the end of the pit wall
  *  rel  -470 ..  470   pit wall (where the inner wall was) with the pit lane behind it:
  *                        d  -18.4 .. -26   fast lane
- *                        d  -26   .. -34   33 pit boxes, 24 m each (box 17 = the player, centred on the line)
+ *                        d  -26   .. -34   33 pit boxes, 24 m each (box 17 = the player, centerd on the line)
  *                        d  -34   .. -40   pit stands / crew area, then the pit back wall
- *  rel   470 ..  600   pit exit road, curving out towards turn 1
+ *  rel   470 ..  600   pit exit road, curving out toward turn 1
  *  rel   470 .. ~1560  pit exit lane (as at Indianapolis): a separate
  *                      paved lane on the inside of the race track through turns 1 and 2,
  *                        d  -10.5 .. -7.8   the race track's (narrowed) apron

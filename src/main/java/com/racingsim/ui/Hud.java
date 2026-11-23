@@ -119,25 +119,25 @@ public final class Hud {
         playerRow = rect(standingsLeft, standingsTop, standingsWidth, 10, new ColorRGBA(0.10f, 0.32f, 0.85f, 0.75f), 0.5f);
         standingsText = text(base * 0.95f, ColorRGBA.White, rx + 16, standingsTop);
 
-        // ---- draft indicator (top-centre) ----
+        // ---- draft indicator (top-center) ----
         float dx = width / 2 - DRAFT_BAR_W / 2, dy = height - 70;
         rect(dx - 14, dy - 22, DRAFT_BAR_W + 28, 70, PANEL, 0);
         draftText = text(base * 1.4f, DIM, dx, dy + 42);
         draftBarBg = rect(dx, dy - 10, DRAFT_BAR_W, 12, new ColorRGBA(1, 1, 1, 0.12f), 0.5f);
         draftBar = rect(dx, dy - 10, DRAFT_BAR_W, 12, DRAFT_ON, 0.6f);
 
-        // ---- pit-stop messages / countdown (centre) ----
+        // ---- pit-stop messages / countdown (center) ----
         pitMsg = text(base * 2.2f, PIT_YELLOW, 0, height * 0.72f);
         pitSub = text(base * 1.0f, ColorRGBA.White, 0, height * 0.72f - base * 2.6f);
         float bx = width / 2 - PIT_BAR_W / 2, by = height * 0.72f - base * 4.6f;
         pitBarBg = rect(bx, by, PIT_BAR_W, 10, new ColorRGBA(1, 1, 1, 0.15f), 0.5f);
         pitBar = rect(bx, by, PIT_BAR_W, 10, PIT_YELLOW, 0.6f);
 
-        // ---- steering wheel (bottom centre, 10 to 2 o'clock visible) ----
+        // ---- steering wheel (bottom center, 10 to 2 o'clock visible) ----
         steeringWheel = new SteeringWheelWidget(assets, font, width, 300f);
         root.attachChild(steeringWheel.getNode());
 
-        // ---- help (top centre, under the draft meter) ----
+        // ---- help (top center, under the draft meter) ----
         helpText = text(base * 0.85f, DIM, 0, height - 104);
         helpText.setText("W/Up throttle  S/Down brake  A/D or mouse steer  E/Q shift  T auto  R reset  C camera  G quality  H help  Esc menu");
         helpText.setLocalTranslation(width / 2 - helpText.getLineWidth() / 2, height - 104, 1);

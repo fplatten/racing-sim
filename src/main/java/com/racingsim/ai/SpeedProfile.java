@@ -7,7 +7,7 @@ import com.racingsim.vehicle.VehicleSpec;
 
 /**
  * Pre-computed target speed along the racing line: the maximum steady-state cornering
- * speed on a banked turn with aerodynamic downforce, followed by a backwards braking pass
+ * speed on a banked turn with aerodynamic downforce, followed by a backward braking pass
  * so the AI starts slowing down before corner entry.
  */
 public final class SpeedProfile {
@@ -41,7 +41,7 @@ public final class SpeedProfile {
             float r = track.radius(s, line.offset(s));
             speeds[i] = Float.isInfinite(r) ? MAX_SPEED : cornerSpeed(m, r, track.bank(s), gripFactor, k);
         }
-        // backwards braking pass (twice around to handle the wrap)
+        // backward braking pass (twice around to handle the wrap)
         for (int pass = 0; pass < 2; pass++) {
             for (int i = n - 1; i >= 0; i--) {
                 float next = speeds[(i + 1) % n];

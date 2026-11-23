@@ -7,7 +7,7 @@ import com.jme3.post.Filter;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 
-/** Final colour grade: saturation, filmic contrast, warm tint and a soft vignette. */
+/** Final color grade: saturation, filmic contrast, warm tint and a soft vignette. */
 public final class ColorGradeFilter extends Filter {
 
     private final float saturation, contrast, vignette;

@@ -50,7 +50,7 @@ public final class PitStop {
         served = false;
     }
 
-    /** Box test: centre of the car inside the painted box of this car's stall. */
+    /** Box test: center of the car inside the painted box of this car's stall. */
     public static boolean inBox(int stall, float s, float d) {
         float r = PitLane.rel(s), start = PitLane.stallStart(stall);
         return r > start + 0.5f && r < start + PitLane.STALL_LENGTH - 0.5f

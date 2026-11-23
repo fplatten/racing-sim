@@ -17,7 +17,7 @@ for name, x, y in (("wheel_front.glb", 0.86, -1.65), ("wheel_front.glb", -0.86, 
             o.location = (x, y, 0.33)
             if x < 0:
                 o.rotation_euler = (0, 0, math.pi)
-# livery stand-in colours
+# livery stand-in colors
 for m in bpy.data.materials:
     if m.name.startswith("Livery") and m.node_tree:
         m.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0.03, 0.12, 0.6, 1)

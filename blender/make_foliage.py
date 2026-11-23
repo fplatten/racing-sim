@@ -14,8 +14,8 @@ Textures (Textures/Props):
 Models (Models/Props), Blender Z-up, ground at z = 0, exported to glTF Y-up:
   tree_0 oak, tree_1 maple, tree_2 spruce, tree_3 young tree, shrub_0
 Each model has a "Bark_Trunk" object (material Bark) and a "Leaves_Crown" object (material Leaves):
-crowns are alpha-tested leaf cards with normals bent outwards from the crown centre (soft,
-volumetric shading) and vertex-colour ambient occlusion (darker inside and underneath).
+crowns are alpha-tested leaf cards with normals bent outwards from the crown center (soft,
+volumetric shading) and vertex-color ambient occlusion (darker inside and underneath).
 """
 import math
 import os
@@ -47,7 +47,7 @@ def smoothstep(a, b, x):
 
 # =============================================================================== textures
 def stamp(rgb, alpha, xs, ys, colors, radius):
-    """Paints discs of `radius` px at the points (xs, ys) with per-point colours (N,3)."""
+    """Paints discs of `radius` px at the points (xs, ys) with per-point colors (N,3)."""
     h, w = alpha.shape
     r = int(math.ceil(radius))
     for oy in range(-r, r + 1):
@@ -173,8 +173,8 @@ def conifer_spray(size, seed):
 
 
 def downsample(rgb, alpha):
-    """2x2 box filter with premultiplied colour; transparent texels get the mean leaf colour
-    so mipmaps do not fade the cards towards black."""
+    """2x2 box filter with premultiplied color; transparent texels get the mean leaf color
+    so mipmaps do not fade the cards toward black."""
     h, w = alpha.shape
     pre = rgb * alpha[..., None]
     pre = pre.reshape(h // 2, 2, w // 2, 2, 3).mean(axis=(1, 3))
@@ -241,7 +241,7 @@ def treeline(w=2048, h=512):
             d = np.sqrt(dx * dx + (ys - cy) ** 2 * 1.1)
             crown = d < rad * (0.85 + 0.35 * noise)
             mask = crown | ((ys > cy) & (np.abs(dx) < rad * 0.95))
-            # lit from above-left; below its centre a crown fades into the shared dark understory
+            # lit from above-left; below its center a crown fades into the shared dark understory
             light = 0.75 + 0.55 * np.clip((cy - ys) / rad * 0.6 - dx / rad * 0.3 + 0.4, 0, 1)
             fade = np.clip((ys - cy) / (rad * 1.2), 0, 1)[..., None]
             base = np.array([0.045, 0.085, 0.030]) if r.random() < 0.7 else np.array([0.07, 0.10, 0.035])
@@ -254,7 +254,7 @@ def treeline(w=2048, h=512):
         col = base[None, None, :] * tint * light[..., None] * (0.8 + 0.4 * noise[..., None])
         rgb = np.where(mask[..., None], col, rgb)
         alpha = np.maximum(alpha, mask.astype(np.float32))
-    rgb *= (0.55 + 0.45 * np.clip(1.2 - ys / h, 0, 1))[..., None]  # darker towards the ground
+    rgb *= (0.55 + 0.45 * np.clip(1.2 - ys / h, 0, 1))[..., None]  # darker toward the ground
     alpha[int(h * 0.75):] = 1.0                                    # solid base: trunks and undergrowth
     rgb[int(h * 0.75):] = np.maximum(rgb[int(h * 0.75):], 0.0) * 0.9 + np.array([0.015, 0.025, 0.012]) * 0.1
     rgba = np.ones((h, w, 4))
@@ -308,7 +308,7 @@ def ortho(d):
 
 
 def limb(md, p0, p1, r0, r1, seg=8, v0=0.0):
-    """Tapered cylinder from p0 to p1 with bark UVs (u around, v = metres / 2)."""
+    """Tapered cylinder from p0 to p1 with bark UVs (u around, v = meters / 2)."""
     d = p1 - p0
     u, w = ortho(d)
     length = d.length
@@ -322,9 +322,9 @@ def limb(md, p0, p1, r0, r1, seg=8, v0=0.0):
     return v0 + length / 2
 
 
-def card(md, centre, a, b, uv_rect, normal_fn, ao_fn):
-    """Quad leaf card centre +- a +- b, UVs over uv_rect (u0, v0, u1, v1)."""
-    pts = [centre - a - b, centre + a - b, centre + a + b, centre - a + b]
+def card(md, center, a, b, uv_rect, normal_fn, ao_fn):
+    """Quad leaf card center +- a +- b, UVs over uv_rect (u0, v0, u1, v1)."""
+    pts = [center - a - b, center + a - b, center + a + b, center - a + b]
     u0, v0, u1, v1 = uv_rect
     uvs = [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]
     nrm = [normal_fn(p) for p in pts]
@@ -340,7 +340,7 @@ def broadleaf_tree(name, height, crown_z, radius, radius_v, cards, card_size, qu
     r = random.Random(seed)
     bark_m, leaf_m = principled("Bark", (0.2, 0.15, 0.1, 1), 0, 0.9), principled("Leaves", (0.2, 0.4, 0.1, 1), 0, 0.8)
     trunk, crown = MeshData(), MeshData()
-    centre = Vector((0, 0, crown_z))
+    center = Vector((0, 0, crown_z))
     top = Vector((r.uniform(-0.3, 0.3), r.uniform(-0.3, 0.3), crown_z + radius_v * 0.35))
     if trunk_r > 0:
         mid = Vector((r.uniform(-0.25, 0.25), r.uniform(-0.25, 0.25), crown_z - radius_v * 0.55))
@@ -351,19 +351,19 @@ def broadleaf_tree(name, height, crown_z, radius, radius_v, cards, card_size, qu
         a = k * math.tau / limbs + r.uniform(-0.4, 0.4)
         z0 = crown_z - radius_v * r.uniform(0.2, 0.6)
         start = Vector((0, 0, z0))
-        end = centre + Vector((math.cos(a) * radius * 0.7, math.sin(a) * radius * 0.7, r.uniform(-0.2, 0.6) * radius_v))
+        end = center + Vector((math.cos(a) * radius * 0.7, math.sin(a) * radius * 0.7, r.uniform(-0.2, 0.6) * radius_v))
         if trunk_r > 0:
             limb(trunk, start, end, trunk_r * 0.45, trunk_r * 0.1, 6)
         ends.append(end)
 
     def normal_fn(p):
-        q = p - centre
+        q = p - center
         n = Vector((q.x / radius, q.y / radius, q.z / radius_v))
         n = n.normalized() if n.length > 1e-4 else Vector((0, 0, 1))
         return (n * 0.8 + Vector((0, 0, 0.35))).normalized()
 
     def ao_fn(p):
-        q = p - centre
+        q = p - center
         depth = math.sqrt((q.x / radius) ** 2 + (q.y / radius) ** 2 + (q.z / radius_v) ** 2)
         g = 0.38 + 0.55 * min(1.0, max(0.0, (depth - 0.25) / 0.75)) + 0.14 * max(-1.0, min(1.0, q.z / radius_v))
         return max(0.25, min(1.0, g))
@@ -376,7 +376,7 @@ def broadleaf_tree(name, height, crown_z, radius, radius_v, cards, card_size, qu
             while True:
                 d = Vector((r.gauss(0, 1), r.gauss(0, 1), r.gauss(0, 1))).normalized()
                 f = 0.45 + 0.55 * math.sqrt(r.random())
-                p = centre + Vector((d.x * radius * f, d.y * radius * f, d.z * radius_v * f))
+                p = center + Vector((d.x * radius * f, d.y * radius * f, d.z * radius_v * f))
                 if p.z > crown_z - radius_v * 0.7:
                     break
         n = Vector((r.gauss(0, 1), r.gauss(0, 1), r.gauss(0, 1) + 0.6)).normalized()

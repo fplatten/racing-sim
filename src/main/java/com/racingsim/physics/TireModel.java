@@ -28,7 +28,7 @@ public final class TireModel {
     /** Output of {@link #compute}. */
     public static final class Result {
         public float fx;        // longitudinal force (N), + = forward along the wheel
-        public float fy;        // lateral force (N), + = towards the wheel's left
+        public float fy;        // lateral force (N), + = toward the wheel's left
         public float muEff;     // effective friction coefficient used
         public float usage;     // combined force / available grip (0..1+)
     }

@@ -11,18 +11,18 @@ public final class RacingLine {
 
     public static final float HIGH = 4.3f;
     public static final float LOW = -5.0f;
-    /** How far before/after the turn the line starts moving (metres). */
+    /** How far before/after the turn the line starts moving (meters). */
     private static final float SPREAD = 140f;
 
     private final TrackSpline track;
-    private final float[] centres;
+    private final float[] centers;
     private final float halfWidth;
 
     public RacingLine(TrackSpline track) {
         this.track = track;
         float[] starts = track.turnStarts();
-        centres = new float[starts.length];
-        for (int i = 0; i < starts.length; i++) centres[i] = starts[i] + TrackSpline.TURN / 2f;
+        centers = new float[starts.length];
+        for (int i = 0; i < starts.length; i++) centers[i] = starts[i] + TrackSpline.TURN / 2f;
         halfWidth = TrackSpline.TURN / 2f + SPREAD;
     }
 
@@ -30,7 +30,7 @@ public final class RacingLine {
 
     public float offset(float s) {
         float w = 0f;
-        for (float c : centres) {
+        for (float c : centers) {
             float x = Math.abs(TrackSpline.deltaS(c, s)) / halfWidth;
             if (x < 1f) w = Math.max(w, 0.5f * (1f + FastMath.cos(FastMath.PI * x)));
         }

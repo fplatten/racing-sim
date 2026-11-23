@@ -40,14 +40,14 @@ public final class VehiclePhysics {
         public float omega;            // rad/s
         public float spinAngle;        // rad (visual)
         public float steer;            // rad
-        public float suspensionLength; // mount -> wheel centre (m)
+        public float suspensionLength; // mount -> wheel center (m)
         public float compression;
         float prevCompression;
         public float load;             // N
         public float slipAngle;        // rad
         public float slipRatio;
         public boolean contact;
-        /** True when the wheel is on the tarmac (false = grass). */
+        /** True when the wheel is on the asphalt (false = grass). */
         public boolean onTrack = true;
         final Vector3f contactPoint = new Vector3f();
         final Vector3f normal = new Vector3f(0, 1, 0);
@@ -62,9 +62,9 @@ public final class VehiclePhysics {
     private final VehicleSpec spec;
     private final PhysicsRigidBody body;
     private final PhysicsSpace space;
-    /** Static surfaces the wheels can stand on: [0] = track (tarmac), others = grass. */
+    /** Static surfaces the wheels can stand on: [0] = track (asphalt), others = grass. */
     private final PhysicsCollisionObject[] grounds;
-    /** Grip / rolling-drag multipliers on grass compared with tarmac. */
+    /** Grip / rolling-drag multipliers on grass compared with asphalt. */
     private static final float GRASS_GRIP = 0.55f, GRASS_ROLLING = 6f;
     private float squeal;
     private final TireModel tire = new TireModel();
@@ -151,7 +151,7 @@ public final class VehiclePhysics {
         return (Math.abs(wheels[RL].slipAngle) + Math.abs(wheels[RR].slipAngle)) * 0.5f;
     }
 
-    /** Re-initialises wheel state after a teleport (reset / rolling start). */
+    /** Re-initializes wheel state after a teleport (reset / rolling start). */
     public void resetState(float newSpeed) {
         for (Wheel w : wheels) {
             w.omega = newSpeed / spec.wheelRadius;
@@ -295,7 +295,7 @@ public final class VehiclePhysics {
     /**
      * Crash energy absorption. The car body is a rigid box, so a wall or car contact hands all of
      * the impact straight back as rotation and lift: a 100 m/s brush with the wall would roll the
-     * car over or throw it metres into the air. A real car's tires, suspension and crushable
+     * car over or throw it meters into the air. A real car's tires, suspension and crushable
      * bodywork soak most of that up and it slides along the wall on its wheels. So when a Bullet
      * step changed the velocity by an impact-sized amount, only part of the collision's roll /
      * pitch kick and of its upward kick (along the car's up axis) is kept; the yaw (spin) and the
@@ -402,7 +402,7 @@ public final class VehiclePhysics {
         return best == Float.MAX_VALUE ? -1f : best;
     }
 
-    /** 0..1 tire squeal intensity: slip angles / slip ratios beyond the grip peak on tarmac. */
+    /** 0..1 tire squeal intensity: slip angles / slip ratios beyond the grip peak on asphalt. */
     public float getSqueal() { return squeal; }
 
     private void updateSqueal(float dt) {

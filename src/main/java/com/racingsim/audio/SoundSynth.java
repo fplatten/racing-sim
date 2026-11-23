@@ -243,8 +243,8 @@ public final class SoundSynth {
     }
 
     /** RBJ band-pass biquad, also primed by a first pass around the loop. */
-    private static void bandPass(float[] x, double centre, double q) {
-        double w0 = 2 * Math.PI * centre / RATE, alpha = Math.sin(w0) / (2 * q);
+    private static void bandPass(float[] x, double center, double q) {
+        double w0 = 2 * Math.PI * center / RATE, alpha = Math.sin(w0) / (2 * q);
         double b0 = alpha, b2 = -alpha, a0 = 1 + alpha, a1 = -2 * Math.cos(w0), a2 = 1 - alpha;
         double x1 = 0, x2 = 0, y1 = 0, y2 = 0;
         float[] in = x.clone();
