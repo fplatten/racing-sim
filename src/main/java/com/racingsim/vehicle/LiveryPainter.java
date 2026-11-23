@@ -37,6 +37,11 @@ public final class LiveryPainter {
     private LiveryPainter() { }
 
     public static Texture2D paint(Livery livery, int size) {
+        return texture(render(livery, size));
+    }
+
+    /** Paints the livery sheet (also baked into the build by {@link LiveryBaker}). */
+    public static BufferedImage render(Livery livery, int size) {
         BufferedImage img = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = img.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -158,7 +163,11 @@ public final class LiveryPainter {
         s.dispose();
         g.dispose();
         weather(img);
+        return img;
+    }
 
+    /** The paint texture for a livery sheet from {@link #render}, painted now or baked at build time. */
+    public static Texture2D texture(BufferedImage img) {
         Image image = new AWTLoader().load(img, false);
         Texture2D tex = new Texture2D(image);
         tex.setMinFilter(Texture.MinFilter.Trilinear);

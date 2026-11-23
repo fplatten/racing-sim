@@ -15,6 +15,8 @@ It has custom tire and aero physics at a fixed 240 Hz, up to 32 AI opponents, ae
 ./gradlew wallCheck    # fires a car into the wall 54 ways and reports how far it gets thrown
 ```
 
+The build pre-renders every car's livery and helmet (the player's car and all 32 possible opponents) with `bakeLiveries`, which runs automatically before the resources are packaged. Painting one at run time takes about 1.5 s; loading the baked PNG takes about 25 ms. If a baked texture is missing, the game paints that car itself.
+
 ## Race flow
 0. **Splash screen:** while the game loads, a splash screen shows the title over a race-start render, with a loading bar and the step being loaded (sky, physics, track, grandstands, cars, sounds, grid). Each step runs in its own frame so the bar moves, and a few extra frames compile the shaders before the splash fades into the menu.
 
@@ -57,6 +59,38 @@ It has custom tire and aero physics at a fixed 240 Hz, up to 32 AI opponents, ae
 | `G` | Toggle high-quality post effects (SSAO, light shafts, bloom) |
 | `H` | Toggle help line |
 | `Esc` | In a race: pause and ask whether to leave (**Enter** quits the race and returns to the menu, **Esc** resumes). In the menu: ask whether to quit the game (**Enter** quits, **Esc** returns to the game). On the results screen: back to the menu. |
+
+### Racing wheel / gamepad
+Plug in a racing wheel or gamepad (before or during the game) and it works straight away, next to the keyboard. The help line at the top of the screen shows its name when it is connected.
+
+| Control | Action |
+|---|---|
+| Wheel / left stick | Steer (the wheel position sets the steering directly) |
+| Gas pedal / right trigger | Throttle |
+| Brake pedal / left trigger | Brake (hold at standstill for reverse) |
+| Right / left paddle (RB / LB) | Shift up / down |
+| `X` | Toggle automatic gearbox |
+| `Y` | Toggle camera |
+| `Back` / `View` | Reset to the start/finish line |
+| `Start` / `Menu` | Pause (same as Esc) |
+| `A` / `B` | Menus and prompts: OK (Enter) / back (Esc) |
+| D-pad | Menu navigation |
+
+This is the standard layout of XInput (Xbox-compatible) wheels and of any gamepad GLFW recognizes. Other wheels (for example DirectInput wheels) are read as raw axes: axis 0 steers, axis 1 is the throttle and axis 2 the brake. To change the mapping, put a `controller.properties` file in the folder you start the game from (next to `RacingSim.exe` for the Windows download), for example:
+
+```properties
+mode=raw              # auto (default), gamepad or raw
+device=G29            # use the first controller whose name contains this text
+steer.axis=0
+throttle.axis=2
+brake.axis=3
+steer.gain=1.5        # more steering for the same wheel angle
+steer.invert=false
+button.shiftUp=4
+button.shiftDown=5
+```
+
+When a controller connects, the game logs its name, mode and current axis values, which helps you find the right axis numbers. See `RacingController` for every setting.
 
 ## Packages
 | Package | Contents |

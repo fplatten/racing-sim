@@ -11,8 +11,14 @@ import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.texture.Texture2D;
 import com.jme3.util.mikktspace.MikktspaceTangentGenerator;
 import com.racingsim.track.Pbr;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Builds a race car from the Blender-made glTF models ({@code blender/make_car.py}):
@@ -31,6 +37,21 @@ public final class CarModelFactory {
     private final Spatial wheelRearTemplate;
     private final Material carbon, black, suspension, visor, light, tire, rim, hub, lip, pad;
     private final BodyDetail detail;
+
+    /**
+     * Painting a livery and helmet takes about 1.5 s of CPU, nearly all of a car's build time, so
+     * the build bakes them ({@link LiveryBaker}) and they can be loaded ahead on background threads
+     * ({@link #prepaint}); the textures are only uploaded to the GPU when the car is first drawn.
+     */
+    private record Paint(Texture2D livery, Texture2D helmet) { }
+    private final Map<String, CompletableFuture<Paint>> paints = new ConcurrentHashMap<>();
+    private final ExecutorService painters = Executors.newFixedThreadPool(
+            Math.max(1, Math.min(2, Runtime.getRuntime().availableProcessors() - 2)), r -> {
+                Thread t = new Thread(r, "livery-painter");
+                t.setDaemon(true);
+                t.setPriority(Thread.MIN_PRIORITY);
+                return t;
+            });
 
     public CarModelFactory(AssetManager assets) {
         this.assets = assets;
@@ -70,14 +91,17 @@ public final class CarModelFactory {
 
         // clear-coated paint: roughness, panel-seam AO and the seam / chip normal map are shared
         Material paint = Pbr.material(assets, ColorRGBA.White, 0f, 1f);
-        paint.setTexture("BaseColorMap", LiveryPainter.paint(livery, highDetail ? 2048 : 1024));
+        Paint painted = paints.containsKey(key(livery, highDetail))
+                ? painting(livery, highDetail).join()              // painted (or being painted) ahead
+                : paintNow(livery, highDetail);
+        paint.setTexture("BaseColorMap", painted.livery());
         paint.setTexture("MetallicRoughnessMap", detail.aoRoughMetal);
         paint.setBoolean("AoPackedInMRMap", true);
         paint.setTexture("NormalMap", detail.normal);
         paint.setFloat("NormalType", 1.0f);
         paint.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
         Material helmet = Pbr.material(assets, ColorRGBA.White, 0f, 0.10f);
-        helmet.setTexture("BaseColorMap", HelmetPainter.paint(livery));
+        helmet.setTexture("BaseColorMap", painted.helmet());
 
         Spatial body = bodyTemplate.clone(false);
         body.depthFirstTraversal(s -> {
@@ -116,6 +140,35 @@ public final class CarModelFactory {
         }
         root.setShadowMode(RenderQueue.ShadowMode.Cast);
         return new CarModel(root, pivots, spinners);
+    }
+
+    /**
+     * Starts painting this livery's textures on a background thread (once; queued in call order)
+     * so a later {@link #build} does not have to wait for them.
+     */
+    public void prepaint(Livery livery, boolean highDetail) {
+        painting(livery, highDetail);
+    }
+
+    private CompletableFuture<Paint> painting(Livery livery, boolean highDetail) {
+        return paints.computeIfAbsent(key(livery, highDetail),
+                k -> CompletableFuture.supplyAsync(() -> paintNow(livery, highDetail), painters));
+    }
+
+    /** True when {@link #build} can make this car without waiting for paint (starts painting it if needed). */
+    public boolean isPainted(Livery livery, boolean highDetail) {
+        return painting(livery, highDetail).isDone();
+    }
+
+    /** The baked textures from the build ({@link LiveryBaker}), or painted now when they're missing. */
+    private static Paint paintNow(Livery livery, boolean highDetail) {
+        LiveryBaker.Sheets sheets = LiveryBaker.load(livery, highDetail);
+        if (sheets == null) sheets = LiveryBaker.render(livery, highDetail);
+        return new Paint(LiveryPainter.texture(sheets.livery()), HelmetPainter.texture(sheets.helmet()));
+    }
+
+    private static String key(Livery livery, boolean highDetail) {
+        return livery.name() + "#" + livery.number() + (highDetail ? "/hi" : "");
     }
 
     /** The Blender material name (also used as mesh / object name by the export script). */

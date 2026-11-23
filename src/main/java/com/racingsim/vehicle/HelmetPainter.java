@@ -33,6 +33,11 @@ public final class HelmetPainter {
     private HelmetPainter() { }
 
     public static Texture2D paint(Livery livery) {
+        return texture(render(livery));
+    }
+
+    /** Paints the helmet sheet (also baked into the build by {@link LiveryBaker}). */
+    public static BufferedImage render(Livery livery) {
         Color base = awt(livery.secondary()), main = awt(livery.primary()), accent = awt(livery.accent());
         // a dark helmet on a dark car disappears: lift the base color to white
         if (lum(base) < 0.25f && lum(main) < 0.25f) base = new Color(235, 235, 235);
@@ -113,7 +118,11 @@ public final class HelmetPainter {
             g.fill(nt.createTransformedShape(ng.getOutline()));
         }
         g.dispose();
+        return img;
+    }
 
+    /** The helmet texture for a sheet from {@link #render}, painted now or baked at build time. */
+    public static Texture2D texture(BufferedImage img) {
         Image image = new AWTLoader().load(img, false);
         Texture2D tex = new Texture2D(image);
         tex.setMinFilter(Texture.MinFilter.Trilinear);

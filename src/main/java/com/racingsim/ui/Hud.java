@@ -139,7 +139,21 @@ public final class Hud {
 
         // ---- help (top center, under the draft meter) ----
         helpText = text(base * 0.85f, DIM, 0, height - 104);
-        helpText.setText("W/Up throttle  S/Down brake  A/D or mouse steer  E/Q shift  T auto  R reset  C camera  G quality  H help  Esc menu");
+        setController(null);
+    }
+
+    private static final String KEY_HELP =
+            "W/Up throttle  S/Down brake  A/D or mouse steer  E/Q shift  T auto  R reset  C camera  G quality  H help  Esc menu";
+    private String controllerName;                 // null until the help line is first set
+
+    /** Help line for the keyboard, or for the racing wheel / gamepad when one is connected (name, or null). */
+    public void setController(String name) {
+        String n = name == null ? "" : name;
+        if (n.equals(controllerName)) return;
+        controllerName = n;
+        helpText.setText(n.isEmpty() ? KEY_HELP
+                : n + ":  wheel steer  pedals gas/brake  RB/LB paddles shift  X auto  Back reset  Y camera  Start menu"
+                  + "   (keys also work, H hides help)");
         helpText.setLocalTranslation(width / 2 - helpText.getLineWidth() / 2, height - 104, 1);
     }
 

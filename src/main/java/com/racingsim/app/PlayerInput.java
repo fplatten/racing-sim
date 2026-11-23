@@ -26,6 +26,10 @@ import com.racingsim.vehicle.VehicleInput;
  * </pre>
  * With mouse steering engaged the mouse behaves like a steering wheel: its horizontal travel
  * sets an absolute wheel position that stays where it is left.
+ * <p>
+ * A racing wheel or gamepad ({@link RacingController}) drives the car directly: the wheel sets the
+ * steering position and the pedals the throttle and brake. The keyboard keeps working alongside it
+ * (each pedal takes the larger of the two) and takes over the steering while A / D are held.
  */
 public final class PlayerInput implements ActionListener, AnalogListener {
 
@@ -42,6 +46,7 @@ public final class PlayerInput implements ActionListener, AnalogListener {
     private float mouseSteer;
 
     private float throttleCmd, brakeCmd, steerCmd;
+    private RacingController controller;
 
     public void register(InputManager im) {
         im.addMapping(THROTTLE, new KeyTrigger(KeyInput.KEY_W), new KeyTrigger(KeyInput.KEY_UP));
@@ -97,6 +102,20 @@ public final class PlayerInput implements ActionListener, AnalogListener {
 
     public boolean isMouseSteering() { return mouseSteering; }
 
+    public void setController(RacingController controller) { this.controller = controller; }
+
+    /** Driving buttons on the racing wheel / gamepad (menu buttons are handled by the app). */
+    public void onControllerButton(RacingController.Button button) {
+        switch (button) {
+            case SHIFT_UP -> shiftUp = true;
+            case SHIFT_DOWN -> shiftDown = true;
+            case AUTO -> toggleAuto = true;
+            case RESET -> reset = true;
+            case CAMERA -> camera = true;
+            default -> { }
+        }
+    }
+
     /** Converts key state into analog vehicle commands (called every physics step). */
     public void apply(VehicleInput in, float dt, float speed) {
         throttleCmd = ramp(throttleCmd, throttle ? 1f : 0f, 6f * dt, 10f * dt);
@@ -106,15 +125,19 @@ public final class PlayerInput implements ActionListener, AnalogListener {
         float rate = (steerTarget != 0f ? 3.0f : 5.0f) * speedFactor * dt;
         // returning through center is quicker than winding on lock
         if (steerTarget != 0f && Math.signum(steerTarget) != Math.signum(steerCmd)) rate *= 1.8f;
+        boolean wheel = controller != null && controller.isConnected();
         if (mouseSteering) {
             // follow the mouse wheel position with a tiny smoothing lag
             steerCmd += (mouseSteer - steerCmd) * Math.min(1f, dt / 0.03f);
+        } else if (wheel && steerTarget == 0f) {
+            // racing wheel: follow its position, with just enough smoothing to hide sensor jitter
+            steerCmd += (controller.steer() - steerCmd) * Math.min(1f, dt / 0.015f);
         } else {
             steerCmd += FastMath.clamp(steerTarget - steerCmd, -rate, rate);
         }
 
-        in.throttle = throttleCmd;
-        in.brake = brakeCmd;
+        in.throttle = wheel ? Math.max(throttleCmd, controller.throttle()) : throttleCmd;
+        in.brake = wheel ? Math.max(brakeCmd, controller.brake()) : brakeCmd;
         in.steer = steerCmd;
         if (shiftUp) { in.shiftUpRequest = true; shiftUp = false; }
         if (shiftDown) { in.shiftDownRequest = true; shiftDown = false; }

@@ -41,6 +41,20 @@ application {
     applicationDefaultJvmArgs = jvmArgsList
 }
 
+// Paints every car's livery and helmet once at build time (about 1.5 s of CPU each at run time);
+// the PNGs are packaged under Textures/Liveries/ and the game falls back to painting if one is missing.
+val liveryDir = layout.buildDirectory.dir("generated/liveries")
+val bakeLiveries = tasks.register<JavaExec>("bakeLiveries") {
+    group = "build"
+    description = "Pre-renders the livery and helmet textures of all 33 cars."
+    classpath = sourceSets["main"].output.classesDirs + configurations["runtimeClasspath"] + files("src/main/resources")
+    mainClass.set("com.racingsim.vehicle.LiveryBaker")
+    args(liveryDir.get().asFile.absolutePath)
+    inputs.files(sourceSets["main"].output.classesDirs)
+    outputs.dir(liveryDir)
+}
+sourceSets["main"].resources.srcDir(files(liveryDir).builtBy(bakeLiveries))
+
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
     options.release.set(21)

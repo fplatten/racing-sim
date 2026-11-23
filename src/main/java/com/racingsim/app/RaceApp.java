@@ -62,6 +62,7 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
     private final Map<Car, AIDriver> aiDrivers = new HashMap<>();
     private final Random rnd = new Random(42);
     private int heldDirection;
+    private boolean fieldPending;                   // menu changed the field; waiting for car paint
     private float heldTime, repeatTimer;
 
     private State state;
@@ -70,6 +71,7 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
     private RacingLine line;
     private RaceDirector director;
     private PlayerInput playerInput;
+    private RacingController controller;           // racing wheel / gamepad; null while recording a movie
     private CameraController cameraController;
     private Hud hud;
     private MenuScreen menu;
@@ -167,6 +169,10 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
         loadSteps.add(new LoadStep("Preparing your car", () -> {
             playerInput = new PlayerInput();
             playerInput.register(inputManager);
+            if (movieFile == null) {                  // scripted movies are driven without a controller
+                controller = new RacingController();
+                playerInput.setController(controller);
+            }
             line = new RacingLine(track);
             director = new RaceDirector(track, line, playerInput);
             factory = new CarModelFactory(assetManager);
@@ -206,6 +212,9 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
             inputManager.addMapping(KEY_ESC, new KeyTrigger(KeyInput.KEY_ESCAPE));
             inputManager.addListener(this, MENU_LEFT, MENU_RIGHT, MENU_UP, MENU_DOWN, MENU_OK, KEY_ENTER, KEY_ESC);
             buildField();
+            // paint the rest of the possible field in the background, so adding opponents in the
+            // menu doesn't stall for ~1.5 s per car
+            for (int i = aiPool.size(); i < MenuScreen.MAX_OPPONENTS; i++) factory.prepaint(Livery.forIndex(i + 1), false);
             director.stopRace();
             bullet.setEnabled(false);
             orbitGrid(0f);            // the next frames render (and compile shaders for) the menu view
@@ -256,8 +265,12 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
 
     /** Builds the field from the menu settings: opponents + player at the chosen grid slot. */
     private void buildField() {
-        int opponents = menu.opponents();
-        int playerSlot = menu.startPosition() - 1;
+        buildField(menu.opponents());
+    }
+
+    /** Builds the field with the first {@code opponents} AI cars (fewer than the menu asks while paint is pending). */
+    private void buildField(int opponents) {
+        int playerSlot = Math.min(menu.startPosition() - 1, opponents);
         List<Car> field = new ArrayList<>();
         List<Car> activeAi = new ArrayList<>();
         int next = 0;
@@ -476,6 +489,10 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
     }
 
     private void startRace(int laps) {
+        if (fieldPending) {                       // opponents still being painted: wait for them now
+            fieldPending = false;
+            buildField();
+        }
         state = State.RACE;
         guiNode.detachChild(menu.getNode());
         guiNode.detachChild(results.getNode());
@@ -493,11 +510,40 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
 
     /** Applies a menu change; field changes are shown live on the grid behind the menu. */
     private void changeSetting(int dir) {
-        if (menu.change(dir)) buildField();
+        if (!menu.change(dir)) return;
+        // new opponents whose paint isn't ready yet join the grid once it is (see updatePendingField)
+        if (fieldPainted()) buildField();
+        else fieldPending = true;
+    }
+
+    /** True when every opponent the menu asks for can be built without waiting for its paint. */
+    private boolean fieldPainted() {
+        return paintedOpponents() == menu.opponents();
+    }
+
+    /** How many of the opponents the menu asks for can be built right now (built or painted, in grid order). */
+    private int paintedOpponents() {
+        int n = Math.min(aiPool.size(), menu.opponents());
+        while (n < menu.opponents() && factory.isPainted(Livery.forIndex(n + 1), false)) n++;
+        return n;
+    }
+
+    /** Rolls pending opponents onto the grid behind the menu as their paint finishes. */
+    private void updatePendingField() {
+        if (!fieldPending) return;
+        int ready = paintedOpponents();
+        if (ready == menu.opponents()) {
+            fieldPending = false;
+            buildField();
+        } else if (ready != director.getCars().size() - 1) {
+            buildField(ready);
+        }
     }
 
     private void repeatHeldKey(float tpf) {
         if (heldDirection == 0) return;
+        // a long frame must not count as a long hold (or fire a burst of repeats)
+        tpf = Math.min(tpf, 0.1f);
         heldTime += tpf;
         if (heldTime < REPEAT_DELAY) return;
         repeatTimer += tpf;
@@ -516,6 +562,28 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
     private void showResults() {
         state = State.RESULTS;
         guiNode.attachChild(results.getNode());
+    }
+
+    /**
+     * Racing wheel / gamepad buttons: driving controls go to the player input; A, B, Start and the
+     * D-pad work the menus and prompts like Enter, Esc and the arrow keys.
+     */
+    private void onControllerButton(RacingController.Button button, boolean pressed) {
+        switch (button) {
+            case SHIFT_UP, SHIFT_DOWN, CAMERA, AUTO, RESET -> {
+                if (pressed) playerInput.onControllerButton(button);
+            }
+            case OK -> onAction(KEY_ENTER, pressed, 0f);
+            case PAUSE -> onAction(KEY_ESC, pressed, 0f);
+            // B backs out of prompts and the results, but never pauses a race by accident
+            case BACK -> {
+                if (confirmOpen || state != State.RACE) onAction(KEY_ESC, pressed, 0f);
+            }
+            case UP -> onAction(MENU_UP, pressed, 0f);
+            case DOWN -> onAction(MENU_DOWN, pressed, 0f);
+            case LEFT -> onAction(MENU_LEFT, pressed, 0f);
+            case RIGHT -> onAction(MENU_RIGHT, pressed, 0f);
+        }
     }
 
     @Override
@@ -574,6 +642,7 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
         }
         if (autoShotDir != null) autoShots(tpf);
         Car player = director.getPlayer();
+        if (controller != null) controller.poll(tpf, this::onControllerButton);
         // consume keyboard one-shots in every state so they never fire late
         boolean reset = playerInput.consumeReset();
         boolean camera = playerInput.consumeCamera();
@@ -586,6 +655,7 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
 
         if (state == State.MENU) {
             repeatHeldKey(tpf);
+            updatePendingField();
             orbitGrid(tpf);
             return;
         }
@@ -601,6 +671,7 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
             case T_CAM -> "T-CAM";
             case SHOWCASE -> "SHOWCASE";
         };
+        hud.setController(controller != null && controller.isConnected() ? controller.getName() : null);
         hud.update(player, new Hud.RaceInfo(director.getLapTracker(), me, camName, showHelp, playerInput.isMouseSteering(),
                 director.pitOf(player)));
 
