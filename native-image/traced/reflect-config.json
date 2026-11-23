@@ -118,6 +118,10 @@
   "methods":[{"name":"clone","parameterTypes":[] }]
 },
 {
+  "name":"com.jme3.math.Vector3f",
+  "methods":[{"name":"clone","parameterTypes":[] }]
+},
+{
   "name":"com.jme3.plugins.gson.GsonParser",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },

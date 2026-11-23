@@ -31,6 +31,12 @@
   }, {
     "pattern":"\\QCommon/MatDefs/Light/PBRLighting.vert\\E"
   }, {
+    "pattern":"\\QCommon/MatDefs/Misc/Particle.frag\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Misc/Particle.j3md\\E"
+  }, {
+    "pattern":"\\QCommon/MatDefs/Misc/Particle.vert\\E"
+  }, {
     "pattern":"\\QCommon/MatDefs/Misc/Sky.frag\\E"
   }, {
     "pattern":"\\QCommon/MatDefs/Misc/Sky.vert\\E"

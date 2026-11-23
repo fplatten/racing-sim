@@ -13,6 +13,10 @@
 #       -cp "build/install/racing-sim/lib/*" com.racingsim.app.Main
 # native-image/extra adds every game asset and the Windows native libraries (LWJGL, Bullet),
 # so screens the scripted run never opened still find their files.
+# native-image/awt holds the JNI configuration of AWT's screen-device lookup, recorded from a tiny
+# probe (GraphicsEnvironment.getDefaultScreenDevice().getDefaultConfiguration()). The font cache's
+# clean-up thread (Java2D Disposer) takes that path when it frees glyph caches, which the game's
+# traced runs do not reliably hit; without it the thread dies on a missing JNI field.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 : "${GRAALVM_HOME:?set GRAALVM_HOME to a GraalVM for JDK 21}"
@@ -32,7 +36,7 @@ fi
 "$GRAALVM_HOME/bin/native-image.cmd" \
     -cp "$CP" \
     -H:+UnlockExperimentalVMOptions \
-    -H:ConfigurationFileDirectories=native-image/traced,native-image/extra \
+    -H:ConfigurationFileDirectories=native-image/traced,native-image/extra,native-image/awt \
     -H:-UnlockExperimentalVMOptions \
     --no-fallback \
     -march=compatibility \
