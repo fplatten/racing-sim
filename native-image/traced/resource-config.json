@@ -187,6 +187,138 @@
   }, {
     "pattern":"\\QTextures/Car/carbon_normal.png\\E"
   }, {
+    "pattern":"\\QTextures/Liveries/10-amber-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/10-amber-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/11-jade-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/11-jade-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/12-crimson-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/12-crimson-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/14-magenta-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/14-magenta-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/15-ruby-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/15-ruby-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/18-onyx-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/18-onyx-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/2-cobalt-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/2-cobalt-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/20-saffron-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/20-saffron-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/21-azure-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/21-azure-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/22-sunburst-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/22-sunburst-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/23-coral-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/23-coral-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/24-emerald-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/24-emerald-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/26-copper-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/26-copper-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/27-violet-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/27-violet-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/28-silver-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/28-silver-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/29-tangerine-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/29-tangerine-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/3-midnight-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/3-midnight-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/30-navy-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/30-navy-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/31-teal-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/31-teal-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/33-mint-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/33-mint-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/4-lime-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/4-lime-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/45-garnet-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/45-garnet-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/48-bronze-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/48-bronze-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/5-player-helmet-2048.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/5-player-livery-2048.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/51-sky-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/51-sky-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/6-scarlet-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/6-scarlet-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/60-plum-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/60-plum-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/66-gold-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/66-gold-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/7-papaya-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/7-papaya-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/77-forest-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/77-forest-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/8-indigo-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/8-indigo-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/9-viper-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/9-viper-livery.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/98-rose-helmet.png\\E"
+  }, {
+    "pattern":"\\QTextures/Liveries/98-rose-livery.png\\E"
+  }, {
     "pattern":"\\QTextures/Props/bark_albedo.png\\E"
   }, {
     "pattern":"\\QTextures/Props/bark_normal.png\\E"
