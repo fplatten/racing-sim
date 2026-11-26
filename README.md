@@ -1,7 +1,8 @@
 # Racing Sim (POC)
 
-Single day build of a 3D open-wheel oval racing proof of concept built with **jMonkeyEngine 3.9** + **Minie 9** (Bullet) on Java 21.
-It has custom tire and aero physics at a fixed 240 Hz, up to 32 AI opponents, aerodynamic drafting and pit stops.
+A 3D open-wheel racing proof of concept built with **jMonkeyEngine 3.9** + **Minie 9** (Bullet) on Java 21, started as a single-day build.
+It has two tracks: Indy cars race a 2.5-mile banked oval with a rolling start and pit stops, and 1995-style Formula cars race a hilly 4.352-mile road course from a standing start.
+It has custom tire and aero physics at a fixed 240 Hz, up to 32 AI opponents with their own race craft (rookies to veterans), and aerodynamic drafting.
 
 ![Racing into Turn 1](docs/rubber-groove.png)
 
