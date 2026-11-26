@@ -1,4 +1,4 @@
-# Oval Racing Sim (POC)
+# Racing Sim (POC)
 
 Single day build of a 3D open-wheel oval racing proof of concept built with **jMonkeyEngine 3.9** + **Minie 9** (Bullet) on Java 21.
 It has custom tire and aero physics at a fixed 240 Hz, up to 32 AI opponents, aerodynamic drafting and pit stops.
