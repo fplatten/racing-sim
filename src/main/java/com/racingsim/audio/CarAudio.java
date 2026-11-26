@@ -27,6 +27,8 @@ import java.util.List;
  *       per-car detune, so a pack of identical waveforms does not beat / flange into a warble;
  *       throttle-driven volume and Doppler are smoothed.</li>
  * </ul>
+ * Without a sound device (the game then runs with no audio renderer) every sound stays stopped:
+ * the levels are still tracked, so a movie's offline mixdown keeps working.
  */
 public final class CarAudio {
 
@@ -40,6 +42,8 @@ public final class CarAudio {
     private final List<Car> aiCars = new ArrayList<>();
     private final List<AudioNode> all = new ArrayList<>();
     private final Camera cam;
+    /** False when there is no sound device: nothing is ever played. */
+    private final boolean audible;
     private boolean playing;
     private float throttleSmooth;
     private static final int AI_VOICES = 6;
@@ -51,8 +55,9 @@ public final class CarAudio {
     private final java.util.Map<AudioNode, float[]> samples = new java.util.HashMap<>();
     private final java.util.Map<AudioNode, double[]> mixPos = new java.util.HashMap<>();
 
-    public CarAudio(Node rootNode, Camera cam, Car player) {
+    public CarAudio(Node rootNode, Camera cam, Car player, boolean audible) {
         this.cam = cam;
+        this.audible = audible;
         this.player = player;
         float[] lowS = SoundSynth.engine(LOW_RPM, 0.2f, 11);
         float[] highS = SoundSynth.engine(HIGH_RPM, 0.85f, 12);
@@ -100,7 +105,7 @@ public final class CarAudio {
             } else if (!all.contains(n)) {
                 all.add(n);
             }
-            if (playing && n.getStatus() != AudioSource.Status.Playing) n.play();
+            if (audible && playing && n.getStatus() != AudioSource.Status.Playing) n.play();
             aiCars.add(c);
             aiEngines.add(n);
         }
@@ -122,7 +127,9 @@ public final class CarAudio {
         if (active == playing) return;
         playing = active;
         for (AudioNode n : all) {
-            if (active) n.play();
+            if (active) {
+                if (audible) n.play();
+            }
             else if (n.getStatus() == AudioSource.Status.Playing) n.pause();
         }
     }

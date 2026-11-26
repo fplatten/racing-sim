@@ -211,7 +211,7 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
             loop.addListener(director);
         }));
         loadSteps.add(new LoadStep("Tuning the engines", () -> {
-            audio = new CarAudio(world, cam, player);
+            audio = new CarAudio(world, cam, player, audioRenderer != null);
             tireSmoke = new com.racingsim.vehicle.TireSmoke(assetManager, world);
         }));
         loadSteps.add(new LoadStep("Setting up the timing screens", () -> {

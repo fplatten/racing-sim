@@ -13,7 +13,7 @@ The road course is raced in a 1995-style **Formula car**, modeled in Blender by 
 
 **[Watch the 30-second opening movie (MP4, 56 MB)](docs/opening-movie.mp4)**: splash screen, race setup, and a rolling start with sound.
 
-**Windows download:** get `RacingSim-windows-x64.zip` from the [latest release](https://github.com/fplatten/racing-sim/releases/latest), unzip it and run `RacingSim.exe`. No Java install is needed: it is a GraalVM native executable. Keep the DLLs and the `lib` folder next to it, since Java's AWT uses them to draw the car numbers. To build it yourself, install GraalVM for JDK 21 and Visual Studio 2022 Build Tools (C++), then run `GRAALVM_HOME=<graalvm dir> native-image/build.sh`. The reflection, JNI and resource configuration in `native-image/` was recorded by GraalVM's tracing agent during a scripted run.
+**Windows download:** get `RacingSim-windows-x64.zip` from the [latest release](https://github.com/fplatten/racing-sim/releases/latest), unzip it and run `RacingSim.exe`. No Java install is needed: it is a GraalVM native executable. Keep the DLLs and the `lib` folder next to it, since Java's AWT uses them to draw the car numbers. If no sound device can be opened (none plugged in, or one Windows won't start, such as a sleeping monitor's speakers), the game runs without sound instead of stopping; `-Dracingsim.silent` turns sound off on purpose. To build it yourself, install GraalVM for JDK 21 and Visual Studio 2022 Build Tools (C++), then run `GRAALVM_HOME=<graalvm dir> native-image/build.sh`. The reflection, JNI and resource configuration in `native-image/` was recorded by GraalVM's tracing agent during a scripted run.
 
 ```
 ./gradlew run          # race (Windows PowerShell: .\gradlew.bat run)

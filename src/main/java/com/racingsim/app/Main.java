@@ -1,6 +1,8 @@
 package com.racingsim.app;
 
 import com.jme3.system.AppSettings;
+import org.lwjgl.openal.ALC;
+import org.lwjgl.openal.ALC10;
 
 /** Entry point: {@code ./gradlew run}. */
 public final class Main {
@@ -18,10 +20,40 @@ public final class Main {
         settings.setVSync(true);
         settings.setFrameRate(-1);
         settings.setRenderer(AppSettings.LWJGL_OPENGL32);
+        if (!soundDeviceWorks()) {
+            // jME would stop with "no OpenAL context current": race in silence instead
+            System.err.println("No sound device could be opened; the game runs without sound.");
+            settings.setAudioRenderer(null);
+        }
         app.setSettings(settings);
         app.setShowSettings(false);
         app.setPauseOnLostFocus(false);
         app.start();
+    }
+
+    /**
+     * Opens the default sound device and an OpenAL context on it the way jME's LwjglALC does, then
+     * closes them again. False if any step fails (no device, or one Windows will not start, for
+     * example a monitor's speakers while the monitor sleeps).
+     */
+    private static boolean soundDeviceWorks() {
+        if (System.getProperty("racingsim.silent") != null) return false;
+        long device = 0, context = 0;
+        try {
+            device = ALC10.alcOpenDevice((java.nio.ByteBuffer) null);
+            if (device == 0) return false;
+            ALC.createCapabilities(device);
+            context = ALC10.alcCreateContext(device, (java.nio.IntBuffer) null);
+            return context != 0 && ALC10.alcMakeContextCurrent(context);
+        } catch (RuntimeException | LinkageError e) {
+            return false;
+        } finally {
+            if (context != 0) {
+                ALC10.alcMakeContextCurrent(0);
+                ALC10.alcDestroyContext(context);
+            }
+            if (device != 0) ALC10.alcCloseDevice(device);
+        }
     }
 
     /**
