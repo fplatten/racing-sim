@@ -20,6 +20,7 @@ import com.racingsim.vehicle.Car;
 import com.racingsim.vehicle.VehiclePhysics;
 
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Telemetry & race HUD built from BitmapText: speed (MPH), RPM bar, gear, race position,
@@ -35,7 +36,17 @@ public final class Hud {
 
     /** Snapshot of race-level information the HUD needs from the app. */
     public record RaceInfo(LapTracker tracker, LapTracker.Entry playerEntry, String cameraName, boolean showHelp,
-                           boolean mouseSteering, PitStop pit) { }
+                           boolean mouseSteering, PitStop pit, Function<LapTracker.Entry, DriverTag> driverTags) { }
+
+    /** What the standings show about a car: AI driver type (0 rookie, 1 regular, 2 veteran; -1 for
+     *  the human player) and wing level (0..DOWNFORCE_STEPS). */
+    public record DriverTag(int type, int wing) { }
+
+    private static final String[] DRIVER_TYPES = {"ROOKIE", "REGULAR", "VETERAN"};
+    private static final ColorRGBA[] DRIVER_TYPE_COLORS = {
+            new ColorRGBA(0.55f, 0.85f, 1f, 1f), new ColorRGBA(0.80f, 0.80f, 0.80f, 1f), new ColorRGBA(1f, 0.62f, 0.25f, 1f)};
+    private static final ColorRGBA WING_COLOR = new ColorRGBA(0.80f, 0.80f, 0.80f, 1f);
+    private static final int STANDINGS_ROWS = 10;
 
     private final Node root = new Node("HUD");
     private final AssetManager assets;
@@ -44,7 +55,10 @@ public final class Hud {
 
     private BitmapText speedText, speedUnit, gearText, gearInfo, rpmText, gText, slipText;
     private BitmapText posText, lapText, timeText, lastText, bestText, standingsText;
-    private BitmapText draftText, helpText, camText, pitText, pitMsg, pitSub;
+    private BitmapText draftText, helpText, camText, pitText, pitMsg, pitSub, standingsGap;
+    /** Per standings row: driver type and wing level (each row has its own color). */
+    private final BitmapText[] standingsType = new BitmapText[STANDINGS_ROWS];
+    private final BitmapText[] standingsWing = new BitmapText[STANDINGS_ROWS];
     private Geometry pitBar, pitBarBg;
     private static final float PIT_BAR_W = 360f;
     private static final ColorRGBA GO = new ColorRGBA(0.3f, 1f, 0.35f, 1f);
@@ -105,7 +119,7 @@ public final class Hud {
         camText = text(base * 0.85f, DIM, px + 16, py + ph - 208);
 
         // ---- race panel (top-right) ----
-        float rw = 330, rh = 400, rx = width - rw - 20, ry = height - rh - 20;
+        float rw = 400, rh = 400, rx = width - rw - 20, ry = height - rh - 20;
         rect(rx, ry, rw, rh, PANEL, 0);
         posText = text(base * 2.6f, ColorRGBA.White, rx + 16, ry + rh - 8);
         lapText = text(base * 1.3f, ColorRGBA.White, rx + 190, ry + rh - 18);
@@ -118,6 +132,13 @@ public final class Hud {
         standingsWidth = rw - 16;
         playerRow = rect(standingsLeft, standingsTop, standingsWidth, 10, new ColorRGBA(0.10f, 0.32f, 0.85f, 0.75f), 0.5f);
         standingsText = text(base * 0.95f, ColorRGBA.White, rx + 16, standingsTop);
+        // driver type and wing level: rookie / regular / veteran, W0 (light) .. W10 (heavy)
+        float lineH = standingsText.getLineHeight();
+        for (int i = 0; i < STANDINGS_ROWS; i++) {
+            standingsType[i] = text(base * 0.75f, ColorRGBA.White, rx + 158, standingsTop - i * lineH - 2);
+            standingsWing[i] = text(base * 0.75f, WING_COLOR, rx + 248, standingsTop - i * lineH - 2);
+        }
+        standingsGap = text(base * 0.95f, ColorRGBA.White, rx + 300, standingsTop);
 
         // ---- draft indicator (top-center) ----
         float dx = width / 2 - DRAFT_BAR_W / 2, dy = height - 70;
@@ -140,6 +161,7 @@ public final class Hud {
         // ---- help (top center, under the draft meter) ----
         helpText = text(base * 0.85f, DIM, 0, height - 104);
         setController(null);
+        buildStartLights(base);
     }
 
     private static final String KEY_HELP =
@@ -199,24 +221,40 @@ public final class Hud {
         lastText.setText("LAST  " + formatTime(me.lastLapTime()));
         bestText.setText("BEST  " + formatTime(me.bestLapTime()));
 
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder(), gaps = new StringBuilder();
         List<LapTracker.Entry> order = tracker.getOrder();
         float refSpeed = Math.max(Math.abs(p.getForwardSpeed()), 20f);
-        List<LapTracker.Entry> rows = StandingsView.rows(order, me, 10);
+        List<LapTracker.Entry> rows = StandingsView.rows(order, me, STANDINGS_ROWS);
         int myLine = 0;
-        for (int i = 0; i < rows.size(); i++) {
-            LapTracker.Entry e = rows.get(i);
+        for (int i = 0; i < STANDINGS_ROWS; i++) {
+            LapTracker.Entry e = i < rows.size() ? rows.get(i) : null;
+            standingsType[i].setText("");
+            standingsWing[i].setText("");
             if (e == null) {
-                sb.append("   ...%n".formatted());
+                if (i < rows.size()) {
+                    sb.append("   ...%n".formatted());
+                    gaps.append('\n');
+                }
                 continue;
             }
             if (e == me) myLine = i;
             String gap;
             if (e == me) gap = "  ----";
             else gap = String.format("%+6.2fs", (me.totalDistance() - e.totalDistance()) / refSpeed);
-            sb.append(String.format("P%d %s %-9s %s%n", e.position(), e == me ? ">" : " ", e.name, gap));
+            sb.append(String.format("P%d %s %s%n", e.position(), e == me ? ">" : " ", e.name));
+            gaps.append(gap).append('\n');
+            DriverTag tag = info.driverTags() == null ? null : info.driverTags().apply(e);
+            if (tag != null) {
+                if (tag.type() >= 0) {
+                    standingsType[i].setText(DRIVER_TYPES[tag.type()]);
+                    standingsType[i].setColor(e == me ? ColorRGBA.White : DRIVER_TYPE_COLORS[tag.type()]);
+                }
+                standingsWing[i].setText("W" + tag.wing());
+                standingsWing[i].setColor(e == me ? ColorRGBA.White : WING_COLOR);
+            }
         }
         standingsText.setText(sb.toString());
+        standingsGap.setText(gaps.toString());
         float lineH = standingsText.getLineHeight();
         playerRow.setLocalTranslation(standingsLeft, standingsTop - (myLine + 1) * lineH - 2, 0.5f);
         playerRow.setLocalScale(standingsWidth, lineH + 1, 1);
@@ -234,6 +272,89 @@ public final class Hud {
         updatePit(player, info);
         steeringWheel.update(player.getInput().steer);
         steeringWheel.setMouseSteering(info.mouseSteering(), width);
+    }
+
+    // ---- standing start: the five red lights (top center, under the draft meter) ----
+    private static final float LIGHT_SPACING = 70f, LIGHT_RADIUS = 24f, LIGHTS_FROM_TOP = 200f;
+    private Node lightsPanel;
+    private final Geometry[] lightsLit = new Geometry[5], lightsDark = new Geometry[5];
+    private BitmapText lightsGo, lightsReady;
+
+    private void buildStartLights(float base) {
+        lightsPanel = new Node("StartLights");
+        root.attachChild(lightsPanel);
+        float cy = height - LIGHTS_FROM_TOP;
+        float w = LIGHT_SPACING * 5 + 20f, x0 = width / 2 - w / 2;
+        Geometry bg = rect(x0, cy - LIGHT_RADIUS - 14f, w, 2 * LIGHT_RADIUS + 28f, new ColorRGBA(0.02f, 0.02f, 0.025f, 0.9f), 0);
+        lightsPanel.attachChild(bg);
+        for (int k = 0; k < 5; k++) {
+            float cx = x0 + 10f + LIGHT_SPACING * (k + 0.5f);
+            lightsLit[k] = disc(cx, cy, new ColorRGBA(1f, 0.10f, 0.05f, 1f), new ColorRGBA(0.75f, 0.02f, 0.02f, 1f));
+            lightsDark[k] = disc(cx, cy, new ColorRGBA(0.16f, 0.03f, 0.03f, 1f), new ColorRGBA(0.10f, 0.02f, 0.02f, 1f));
+        }
+        // under the panel: GO! when they go out, a word of warning before the first one comes on
+        float below = cy - LIGHT_RADIUS - 30f;
+        lightsGo = text(base * 3.2f, GO, 0, below);
+        lightsGo.setText("GO!");
+        lightsGo.setLocalTranslation(width / 2 - lightsGo.getLineWidth() / 2, below, 1);
+        lightsReady = text(base, ColorRGBA.White, 0, below);
+        lightsReady.setText("STANDING START  -  GET READY");
+        lightsReady.setLocalTranslation(width / 2 - lightsReady.getLineWidth() / 2, below, 1);
+        lightsPanel.attachChild(lightsGo);
+        lightsPanel.attachChild(lightsReady);
+        setStartLights(-1, -1f);
+    }
+
+    /** A round lamp: a fan of triangles from the core color in the middle to the rim color. */
+    private Geometry disc(float cx, float cy, ColorRGBA core, ColorRGBA rim) {
+        int n = 40;
+        float[] pos = new float[(n + 2) * 3], col = new float[(n + 2) * 4];
+        int[] idx = new int[n * 3];
+        for (int i = 0; i <= n; i++) {
+            float a = FastMath.TWO_PI * i / n;
+            pos[(i + 1) * 3] = LIGHT_RADIUS * FastMath.cos(a);
+            pos[(i + 1) * 3 + 1] = LIGHT_RADIUS * FastMath.sin(a);
+            System.arraycopy(new float[]{rim.r, rim.g, rim.b, 1f}, 0, col, (i + 1) * 4, 4);
+            if (i < n) {
+                idx[i * 3] = 0;
+                idx[i * 3 + 1] = i + 1;
+                idx[i * 3 + 2] = i + 2;
+            }
+        }
+        System.arraycopy(new float[]{core.r, core.g, core.b, 1f}, 0, col, 0, 4);
+        com.jme3.scene.Mesh mesh = new com.jme3.scene.Mesh();
+        mesh.setBuffer(com.jme3.scene.VertexBuffer.Type.Position, 3, pos);
+        mesh.setBuffer(com.jme3.scene.VertexBuffer.Type.Color, 4, col);
+        mesh.setBuffer(com.jme3.scene.VertexBuffer.Type.Index, 3, idx);
+        mesh.updateBound();
+        Geometry g = new Geometry("lamp", mesh);
+        Material m = new Material(assets, "Common/MatDefs/Misc/Unshaded.j3md");
+        m.setBoolean("VertexColor", true);
+        g.setMaterial(m);
+        g.setQueueBucket(RenderQueue.Bucket.Gui);
+        g.setLocalTranslation(cx, cy, 0.5f);
+        lightsPanel.attachChild(g);
+        return g;
+    }
+
+    /**
+     * Standing start (from {@code RaceDirector.startLights()} / {@code greenTime()}): five red
+     * lights come on one by one while the field waits on the grid; when they all go out, GO!
+     * @param lights red lights lit 0..5, -1 once they are out
+     * @param green seconds since they went out (-1 when not racing from a standing start)
+     */
+    public void setStartLights(int lights, float green) {
+        boolean on = lights >= 0;
+        boolean go = !on && green >= 0f && green < 1.6f;
+        lightsPanel.setCullHint(on || go ? Node.CullHint.Inherit : Node.CullHint.Always);
+        if (!on && !go) return;
+        for (int k = 0; k < 5; k++) {
+            boolean lit = on && k < lights;
+            lightsLit[k].setCullHint(lit ? Node.CullHint.Inherit : Node.CullHint.Always);
+            lightsDark[k].setCullHint(lit ? Node.CullHint.Always : Node.CullHint.Inherit);
+        }
+        lightsGo.setCullHint(go ? Node.CullHint.Inherit : Node.CullHint.Always);
+        lightsReady.setCullHint(lights == 0 ? Node.CullHint.Inherit : Node.CullHint.Always);
     }
 
     private void updatePit(Car player, RaceInfo info) {

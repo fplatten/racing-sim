@@ -10,22 +10,26 @@ import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.shape.Quad;
+import com.racingsim.track.TrackLayout;
 
 /**
- * Opening screen drawn over the live 3D scene: race length (5 / 10 laps), number of opponents
+ * Opening screen drawn over the live 3D scene: the track (OVAL / ROAD: changing it rebuilds the
+ * world, see RaceApp), race length (5 / 10 laps on the oval, 3 / 5 on the road course), number of opponents
  * (1..32, i.e. a field of up to 33 cars), the player's starting position (P1 .. last) and the
- * number of mandatory pit stops (0..3) every car must make, and the downforce (wing) setting of the
+ * number of mandatory pit stops (0..3, the oval only) every car must make, and the downforce (wing) setting of the
  * player's car on a slider from minimum downforce (max speed) to maximum downforce (max control).
  * Up/Down selects a setting, Left/Right changes it, Enter starts the race.
  */
 public final class MenuScreen {
 
     public static final int[] RACE_LENGTHS = {5, 10};
+    /** The road course's laps are almost three times as long as the oval's. */
+    public static final int[] ROAD_RACE_LENGTHS = {3, 5};
     public static final int MIN_OPPONENTS = 1, MAX_OPPONENTS = 32;
     public static final int MAX_PIT_STOPS = 3;
     /** Downforce slider: 0 = minimum downforce (max speed) .. DOWNFORCE_STEPS = maximum (max control). */
     public static final int DOWNFORCE_STEPS = 10;
-    private static final int ROWS = 5, DOWNFORCE_ROW = 4;
+    private static final int ROWS = 6, TRACK_ROW = 0, PIT_ROW = 4, DOWNFORCE_ROW = 5;
     private static final float SLIDER_W = 180f;
 
     private static final ColorRGBA PANEL = new ColorRGBA(0.02f, 0.03f, 0.06f, 0.72f);
@@ -38,12 +42,14 @@ public final class MenuScreen {
     private final AssetManager assets;
     private final BitmapFont font;
     private final float width;
-    private final String[] labels = {"RACE LENGTH", "OPPONENTS", "STARTING POSITION", "PIT STOPS", "DOWNFORCE"};
+    private final String[] labels = {"TRACK", "RACE LENGTH", "OPPONENTS", "STARTING POSITION", "PIT STOPS", "DOWNFORCE"};
     private final BitmapText[] labelTexts = new BitmapText[ROWS], valueTexts = new BitmapText[ROWS];
     private final Geometry[] rowBoxes = new Geometry[ROWS];
     private final float[] valueCenters = new float[ROWS];
 
     private int row;
+    private TrackLayout track;
+    private final BitmapText subtitle, trackHint;
     private int lapIndex = 0;
     private int opponents = 7;
     private int startPosition = 6;
@@ -58,17 +64,18 @@ public final class MenuScreen {
         this.font = font;
         this.width = width;
         float base = font.getCharSet().getRenderedSize();
-        float pw = 660, ph = 708, px = (width - pw) / 2, py = (height - ph) / 2;
+        track = com.racingsim.track.TrackSpline.layout();
+        float pw = 660, ph = 732, px = (width - pw) / 2, py = (height - ph) / 2;
         rect(px, py, pw, ph, PANEL, 0);
         rect(px, py + ph - 6, pw, 6, ACCENT, 0.1f);
 
         centered("OVAL RACING SIM", base * 3.2f, ColorRGBA.White, width / 2, py + ph - 30);
-        centered("2.5-mile oval  -  open-wheel cars  -  rolling start, three abreast", base, DIM, width / 2, py + ph - 110);
+        subtitle = centered("", base, DIM, width / 2, py + ph - 110);
         centered("RACE SETUP", base * 1.2f, GOLD, width / 2, py + ph - 160);
 
-        float boxW = 560, boxH = 54, x = width / 2 - boxW / 2;
+        float boxW = 560, boxH = 50, x = width / 2 - boxW / 2;
         for (int i = 0; i < ROWS; i++) {
-            float y = py + ph - 250 - i * (boxH + 14);
+            float y = py + ph - 250 - i * (boxH + 10);
             rowBoxes[i] = rect(x, y, boxW, boxH, IDLE, 0.2f);
             labelTexts[i] = text(labels[i], base * 1.15f, ColorRGBA.White, x + 22, y + boxH - 14);
             valueCenters[i] = x + boxW - 130;
@@ -94,8 +101,7 @@ public final class MenuScreen {
                 base * 0.85f, DIM, width / 2, py + 115);
         centered("T auto gearbox   R reset to start line   C camera   G graphics quality   H help   Esc quit game",
                 base * 0.85f, DIM, width / 2, py + 87);
-        centered("Pit stops: stop in your yellow box (pit lane off turn 4) and stay put for the 8 s countdown.",
-                base * 0.85f, DIM, width / 2, py + 59);
+        trackHint = centered("", base * 0.85f, DIM, width / 2, py + 59);
         centered("Race in the draft: tuck in behind a car to cut drag and slingshot past.",
                 base * 0.85f, DIM, width / 2, py + 31);
         refresh();
@@ -103,7 +109,15 @@ public final class MenuScreen {
 
     public Node getNode() { return root; }
 
-    public int selectedLaps() { return customLaps > 0 ? customLaps : RACE_LENGTHS[lapIndex]; }
+    public int selectedLaps() {
+        return customLaps > 0 ? customLaps : (track == TrackLayout.OVAL ? RACE_LENGTHS : ROAD_RACE_LENGTHS)[lapIndex];
+    }
+
+    /** The track chosen on the TRACK row. */
+    public TrackLayout track() { return track; }
+
+    /** True while the TRACK row is selected (a change there means a different world). */
+    public boolean onTrackRow() { return row == TRACK_ROW; }
 
     public int opponents() { return opponents; }
 
@@ -127,7 +141,7 @@ public final class MenuScreen {
 
     /** Sets all values at once (automated runs; laps need not be one of the menu options). */
     public void configure(int laps, int opponentCount, int start, int stops) {
-        pitStops = Math.max(0, Math.min(MAX_PIT_STOPS, stops));
+        pitStops = track.hasPits() ? Math.max(0, Math.min(MAX_PIT_STOPS, stops)) : 0;
         customLaps = laps;
         opponents = Math.max(MIN_OPPONENTS, Math.min(MAX_OPPONENTS, opponentCount));
         startPosition = Math.max(1, Math.min(fieldSize(), start));
@@ -145,28 +159,41 @@ public final class MenuScreen {
     /** Left / Right: change the selected setting. @return true if the field (cars / grid) changed */
     public boolean change(int delta) {
         switch (row) {
-            case 0 -> {
+            case TRACK_ROW -> {
+                // the other track starts on its own wing; the road course has no pit lane
+                track = track.next();
+                downforce = track.defaultDownforce();
+                customLaps = -1;
+                if (!track.hasPits()) pitStops = 0;
+            }
+            case 1 -> {
                 customLaps = -1;
                 lapIndex = Math.floorMod(lapIndex + delta, RACE_LENGTHS.length);
             }
-            case 1 -> {
+            case 2 -> {
                 opponents = Math.max(MIN_OPPONENTS, Math.min(MAX_OPPONENTS, opponents + delta));
                 startPosition = Math.min(startPosition, fieldSize());
             }
-            case 2 -> startPosition = Math.max(1, Math.min(fieldSize(), startPosition + delta));
-            case 3 -> pitStops = Math.max(0, Math.min(MAX_PIT_STOPS, pitStops + delta));
+            case 3 -> startPosition = Math.max(1, Math.min(fieldSize(), startPosition + delta));
+            case PIT_ROW -> pitStops = track.hasPits() ? Math.max(0, Math.min(MAX_PIT_STOPS, pitStops + delta)) : 0;
             default -> downforce = Math.max(0, Math.min(DOWNFORCE_STEPS, downforce + delta));
         }
         refresh();
-        return row == 1 || row == 2;
+        return row == 2 || row == 3;
     }
 
     private void refresh() {
+        boolean oval = track == TrackLayout.OVAL;
+        setCentered(subtitle, oval ? "2.5-mile oval  -  open-wheel cars  -  rolling start, three abreast"
+                : "4.352-mile road course  -  102 m of hills  -  standing start");
+        setCentered(trackHint, oval ? "Pit stops: stop in your yellow box (pit lane off turn 4) and stay put for the 8 s countdown."
+                : "Standing start: wait on the grid until all five red lights go out, then go.");
         String[] values = {
+                track.label(),
                 selectedLaps() + " LAPS",
                 opponents + "   (" + fieldSize() + " cars)",
                 "P" + startPosition + " of " + fieldSize(),
-                pitStops == 0 ? "NONE" : pitStops + (pitStops == 1 ? " STOP" : " STOPS"),
+                !track.hasPits() ? "N/A" : pitStops == 0 ? "NONE" : pitStops + (pitStops == 1 ? " STOP" : " STOPS"),
                 ""};
         for (int i = 0; i < ROWS; i++) {
             boolean on = i == row;
@@ -194,6 +221,11 @@ public final class MenuScreen {
         t.setLocalTranslation(x, top, 1);
         root.attachChild(t);
         return t;
+    }
+
+    private void setCentered(BitmapText t, String s) {
+        t.setText(s);
+        t.setLocalTranslation(width / 2 - t.getLineWidth() / 2, t.getLocalTranslation().y, 1);
     }
 
     private BitmapText centered(String s, float size, ColorRGBA color, float cx, float top) {

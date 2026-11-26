@@ -21,6 +21,7 @@ import com.jme3.math.FastMath;
  *                      over the last 160 m (exit of turn 2) the grass median tapers to nothing and the
  *                      lane slides out to merge with the race track, becoming the normal apron
  * </pre>
+ * The oval only: on the road course nothing is ever in the pit lane (the queries below say so).
  */
 public final class PitLane {
 
@@ -31,7 +32,7 @@ public final class PitLane {
 
     public static final float START = -600f, WALL_START = -470f, WALL_END = 470f, END = 600f;
     /** Lateral positions (m, negative = infield). */
-    public static final float WALL_D = TrackSpline.INNER_WALL;          // pit wall line (-18)
+    public static final float WALL_D = -18f;                            // pit wall line (the oval's inner wall)
     public static final float FAST_LANE_INNER = -26f, BOX_INNER = -34f, BACK_D = -40f;
     /** Divider between the pit entry lane and the racing surface, on the apron (turn 4). */
     public static final float LANE_DIVIDER_D = -9.6f;
@@ -39,8 +40,8 @@ public final class PitLane {
 
     /** Pit exit lane through turns 1 and 2 (lateral edges in the steady section). */
     public static final float LANE_OUTER = -17f, LANE_INNER = -26f, MEDIAN_OUTER = -10.5f;
-    /** The race track's inner white line. */
-    public static final float TRACK_EDGE = TrackSpline.ROAD_INNER - 0.3f;
+    /** The race track's inner white line (the oval's road edge). */
+    public static final float TRACK_EDGE = -7.5f - 0.3f;
     /** The exit lane ends just past the exit of turn 2, where it has merged with the race track. */
     public static final float LANE_END = TrackSpline.STRAIGHT / 2 + 2 * TrackSpline.TURN + TrackSpline.CHUTE + 50f;
     public static final float BLEND_START = LANE_END - 160f;
@@ -56,12 +57,14 @@ public final class PitLane {
 
     /** True along the pit exit lane (from the end of the pit wall to its merge at the exit of turn 2). */
     public static boolean inExitLane(float s) {
+        if (!TrackSpline.isOval()) return false;
         float r = rel(s);
         return r > WALL_END && r <= LANE_END;
     }
 
     /** True from the pit entry to the end of the pit wall (pit entry road + pit lane). */
     public static boolean inPitRoad(float s) {
+        if (!TrackSpline.isOval()) return false;
         float r = rel(s);
         return r >= START && r <= WALL_END;
     }
@@ -94,12 +97,14 @@ public final class PitLane {
 
     /** True inside the pit complex (entry, pit lane and exit roads). */
     public static boolean inRange(float s) {
+        if (!TrackSpline.isOval()) return false;
         float r = rel(s);
         return r >= START && r <= END;
     }
 
     /** True where the pit wall separates the track from the pit lane. */
     public static boolean pitWallAt(float s) {
+        if (!TrackSpline.isOval()) return false;
         float r = rel(s);
         return r >= WALL_START && r <= WALL_END;
     }
@@ -117,6 +122,7 @@ public final class PitLane {
      * infield beside the pit exit lane (no inner wall there), or the inner wall.
      */
     public static float innerLimit(float s) {
+        if (!TrackSpline.isOval()) return TrackSpline.INNER_WALL;   // (the road course: see TrackSpline.minD)
         if (inPitRoad(s)) return backD(s);
         if (inExitLane(s)) return laneInner(s) - 25f;
         return TrackSpline.INNER_WALL;
@@ -129,6 +135,7 @@ public final class PitLane {
 
     /** Painted divider between the racing surface and the pit entry lane in turn 4 (NaN where absent). */
     public static float dividerD(float s) {
+        if (!TrackSpline.isOval()) return Float.NaN;
         float r = rel(s);
         if (r >= ENTRY_LANE_START && r < START) {
             return FastMath.interpolateLinear(smooth((r - ENTRY_LANE_START) / 90f), TRACK_EDGE, LANE_DIVIDER_D);

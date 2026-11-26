@@ -20,7 +20,9 @@ import com.racingsim.vehicle.Livery;
 import com.racingsim.vehicle.VehiclePhysics;
 import com.racingsim.vehicle.VehicleSpec;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -33,6 +35,10 @@ import java.util.Random;
  * Player modes: {@code ai} = the player's car is AI driven, {@code passive} = no input at all
  * (coasts to a stop from the rolling start), {@code erratic} = a human-like driver that keeps
  * lifting and braking at random. AI-into-player contacts are counted from Bullet collisions.
+ * At the end it prints the AI's race craft ({@link AIDriver.Stats}): time off the racing line
+ * (and why), time three wide, passes by driver type, lead changes and what holds cars back.
+ * Tuning overrides are passed on as system properties: {@code -PaiSling=2 -PpowerScale=1.1 ...}
+ * (see build.gradle.kts).
  */
 public final class HeadlessSimCheck {
 
@@ -51,12 +57,18 @@ public final class HeadlessSimCheck {
         space.setGravity(new Vector3f(0, -9.81f, 0));
         FixedStepPhysics loop = FixedStepPhysics.install(space);
 
+        // the track: -Ptrack=road races on the road course (a standing start)
+        TrackSpline.selectLayout(com.racingsim.track.TrackLayout.fromSystemProperty());
+        System.out.println("Track: " + TrackSpline.layout().title() + ", car: " + VehicleSpec.selectedType());
         TrackSpline track = new TrackSpline();
         TrackBuilder.BuiltTrack built = new TrackBuilder(track, assets).build(space);
         RacingLine line = new RacingLine(track);
         RaceDirector director = new RaceDirector(track, line, new PlayerInput());
         CarModelFactory factory = new CarModelFactory(assets);
         Random rnd = new Random(42);
+        AIDriver.stats = new AIDriver.Stats();
+        // tuning: -PaiGrip=<lowest planned grip> -PaiGripSpread=<range above it>
+        float gripBase = VehicleSpec.tuning("aiGrip", VehicleSpec.forTrack().aiGripBase()), gripSpread = VehicleSpec.tuning("aiGripSpread", 0.10f);
 
         int playerSlot = Math.min(5, carCount - 1);
         boolean humanPlayer = !playerMode.equals("ai");
@@ -64,14 +76,14 @@ public final class HeadlessSimCheck {
         AIDriver playerPilot = null;
         Map<PhysicsCollisionObject, Car> bodyToCar = new HashMap<>();
         for (int slot = 0; slot < carCount; slot++) {
-            VehicleSpec spec = new VehicleSpec();
+            VehicleSpec spec = VehicleSpec.forTrack();
             Livery liv = Livery.forIndex(slot);
             boolean isPlayer = slot == playerSlot && humanPlayer;
             Car car = new Car(isPlayer ? "YOU" : liv.name(), liv, isPlayer, spec, factory, space, built.collider(), built.groundCollider());
             if (slot == playerSlot) car.getPhysics().getAeroModel().setDownforceLevel(downforce);
-            float grip = 1.22f + rnd.nextFloat() * 0.10f;
+            float grip = gripBase + rnd.nextFloat() * gripSpread;
             SpeedProfile profile = new SpeedProfile(track, line, spec, car.getPhysics().getAeroModel(), grip, 13f);
-            AIDriver ai = new AIDriver(car, line, profile, 0.3f + rnd.nextFloat() * 0.7f);
+            AIDriver ai = new AIDriver(car, line, profile, rnd.nextFloat());   // driver type: 0 rookie .. 1 veteran
             director.addCar(car, isPlayer ? null : ai);
             if (isPlayer) playerPilot = ai;
             if (slot == playerSlot) player = car;
@@ -181,6 +193,11 @@ public final class HeadlessSimCheck {
             lastContact.put(other, now);
         });
 
+        // racing at the front: lead changes and changes in the top 3, once the start has settled
+        List<String> lastTop3 = new ArrayList<>(), pendingTop3 = new ArrayList<>();
+        float pendingSince = 0f, nextFrontLog = 0f;
+        int leadChanges = 0, top3Changes = 0;
+
         float frame = 1f / 60f;
         int frames = (int) (seconds / frame);
         float maxSpeed = 0f, maxSqueal = 0f;
@@ -231,6 +248,33 @@ public final class HeadlessSimCheck {
                     pitStatus.put(c, ps.status());
                 }
             }
+            LapTracker laps3 = director.getLapTracker();
+            List<LapTracker.Entry> st = laps3.getOrder();
+            float now = laps3.getTime();
+            // the gaps at the front
+            if (st.size() >= 3 && now >= nextFrontLog) {
+                nextFrontLog = now + (laps3.raceTime() < 100f ? 5f : 15f);
+                System.out.printf("front t=%.0f  P1 %s  %.0f m  P2 %s  %.0f m  P3 %s%n", now,
+                        st.get(0).name, st.get(0).totalDistance() - st.get(1).totalDistance(), st.get(1).name,
+                        st.get(1).totalDistance() - st.get(2).totalDistance(), st.get(2).name);
+            }
+            if (laps3.raceTime() > 100f && st.size() >= 3) {
+                // a change counts once the new order has held for 3 s (cars side by side swap back and forth)
+                List<String> top3 = new ArrayList<>();
+                for (int k = 0; k < 3; k++) top3.add(st.get(k).finished() ? "" : st.get(k).name);
+                if (!top3.contains("")) {
+                    if (!top3.equals(pendingTop3)) {
+                        pendingTop3 = top3;
+                        pendingSince = now;
+                    } else if (now - pendingSince >= 3f && !top3.equals(lastTop3)) {
+                        if (lastTop3.size() == 3) {
+                            if (!top3.get(0).equals(lastTop3.get(0))) leadChanges++;
+                            top3Changes++;
+                        }
+                        lastTop3 = top3;
+                    }
+                }
+            }
             VehiclePhysics p = player.getPhysics();
             maxSpeed = Math.max(maxSpeed, p.getSpeed());
             maxSqueal = Math.max(maxSqueal, p.getSqueal());
@@ -276,10 +320,54 @@ public final class HeadlessSimCheck {
         System.out.printf("Player mode %s: AI->player contacts %d (all car-car contacts %d), recoveries %d, max player speed %.1f mph%n",
                 playerMode, playerContacts[0], anyContacts[0], director.getRecoveries(), maxSpeed * 2.23694f);
         System.out.printf("Tire squeal: max %.2f, audible (>0.2) for %.1f s%n", maxSqueal, squealFrames / 60f);
+        float bestSum = 0f, fastest = Float.MAX_VALUE;
+        int bestCount = 0;
         for (LapTracker.Entry e : director.getLapTracker().getOrder()) {
             System.out.printf("  P%d %-9s laps %d pits %d %s best %s%n", e.position(), e.name, e.lapsCompleted(), e.pitStops(),
                     e.finished() ? String.format("FINISHED %.2fs", e.finishTime()) : "",
                     Float.isNaN(e.bestLapTime()) ? "-" : String.format("%.2f", e.bestLapTime()));
+            if (!Float.isNaN(e.bestLapTime())) {
+                bestSum += e.bestLapTime();
+                bestCount++;
+                fastest = Math.min(fastest, e.bestLapTime());
+            }
         }
+        AIDriver.Stats a = AIDriver.stats;
+        double ticks = Math.max(a.racingTicks, 1);
+        System.out.printf("AI pace: fastest lap %s, average best lap %s, top speed with no tow %.1f mph%n",
+                bestCount > 0 ? String.format("%.2f", fastest) : "-", bestCount > 0 ? String.format("%.2f", bestSum / bestCount) : "-",
+                a.cleanAirTop * 2.23694f);
+        System.out.printf("AI racecraft: off line %.1f%%, 3-wide %.2f%% | passes started %d (%d from the draft), completed %d (%d from the draft), aborted %d | emergency moves %d%n",
+                100.0 * a.offLineTicks / ticks, 100.0 * a.threeWideTicks / ticks, a.passStarts, a.draftPassStarts, a.passesDone,
+                a.draftPassesDone, a.passesAborted, a.emergencyMoves);
+        double stT = Math.max(a.straightTicks, 1);
+        System.out.printf("AI held back on the straights: following %.1f%%, setting up a run %.1f%%, draft run %.1f%%, backing out %.1f%%, squeezed %.1f%%%n",
+                100.0 * a.straightCapped[0] / stT, 100.0 * a.straightCapped[1] / stT, 100.0 * a.straightCapped[2] / stT,
+                100.0 * a.straightCapped[3] / stT, 100.0 * a.straightCapped[4] / stT);
+        double tuT = Math.max(a.turnTicks, 1);
+        System.out.printf("AI held back in the turns: following %.1f%%, setting up a run %.1f%%, draft run %.1f%%, backing out %.1f%%, squeezed %.1f%%%n",
+                100.0 * a.turnCapped[0] / tuT, 100.0 * a.turnCapped[1] / tuT, 100.0 * a.turnCapped[2] / tuT,
+                100.0 * a.turnCapped[3] / tuT, 100.0 * a.turnCapped[4] / tuT);
+        System.out.printf("AI passes completed: rookies %d (%d finished inside a turn), regulars %d (%d), veterans %d (%d)%n",
+                a.passesByType[0], a.tightPassesByType[0], a.passesByType[1], a.tightPassesByType[1], a.passesByType[2], a.tightPassesByType[2]);
+        double hz = FixedStepPhysics.HZ;
+        System.out.printf("AI hard braking in the turns (car-seconds): speed profile %.1f, following %.1f, draft run %.1f, backing out %.1f, squeezed %.1f%n",
+                a.turnBrakeTicks[0] / hz, a.turnBrakeTicks[1] / hz, a.turnBrakeTicks[3] / hz, a.turnBrakeTicks[4] / hz, a.turnBrakeTicks[5] / hz);
+        System.out.printf("Racing at the front after 100 s: %d lead changes, %d top-3 changes%n", leadChanges, top3Changes);
+        System.out.printf("AI 3-wide after 100 s: %.2f%%%n", 100.0 * a.lateThreeWide / Math.max(a.lateTicks, 1));
+        double off = Math.max(a.offLineTicks, 1);
+        System.out.printf("AI off-line causes: passing %.0f%%, emergency %.0f%%, avoiding %.0f%%, waiting to merge %.0f%%, returning %.0f%%, steering error %.0f%%%n",
+                100.0 * a.offPassing / off, 100.0 * a.offEmergency / off, 100.0 * a.offAvoiding / off, 100.0 * a.offHolding / off,
+                100.0 * a.offReturning / off, 100.0 * a.offTracking / off);
+        System.out.printf("AI passing: closing speed at pull-out %.1f m/s; abandoned: not gaining %d, too late for the turn %d, yielded on the outside %d, lane closed %d%n",
+                a.passStarts > 0 ? a.closingAtStart / a.passStarts : 0.0, a.abortStall, a.abortLate, a.abortYield, a.abortBlocked);
+        if (TrackSpline.isRoadCourse()) {
+            System.out.printf("AI late braking down the inside: %d tried, %d made the pass%n", a.outbrakeStarts, a.outbrakesDone);
+        }
+        StringBuilder err = new StringBuilder();
+        for (int i = 0; i < a.trackErrCount.length; i++) {
+            if (a.trackErrCount[i] > 0) err.append(String.format(" %d:%+.1f", i * 50, a.trackErrSum[i] / a.trackErrCount[i]));
+        }
+        System.out.println("AI line error by s:" + err);
     }
 }

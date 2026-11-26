@@ -21,7 +21,8 @@ import com.jme3.util.mikktspace.MikktspaceTangentGenerator;
 import static com.racingsim.track.TrackSpline.*;
 
 /**
- * Procedurally generates the oval with PBR-textured surfaces (Blender-made textures, see
+ * Procedurally generates the track. The road course is built by {@link RoadCourseBuilder}; the
+ * rest of this class builds the oval with PBR-textured surfaces (Blender-made textures, see
  * {@code blender/make_textures.py}): asphalt with a rubbered-in racing groove, painted lines,
  * apron, infield grass, concrete walls, an Indianapolis-style pit lane with 33 boxes (see
  * {@link PitLane}), a chain-link catch fence, a checkered start/finish line,
@@ -52,7 +53,12 @@ public final class TrackBuilder {
      * {@code groundCollider} = infinite ground plane under everything (grass), so a car that
      * leaves the track can never fall out of the world.
      */
-    public record BuiltTrack(Node node, RigidBodyControl collider, RigidBodyControl groundCollider) { }
+    public record BuiltTrack(Node node, RigidBodyControl collider, RigidBodyControl groundCollider, Terrain terrain) {
+        /** The oval: flat ground, no terrain. */
+        public BuiltTrack(Node node, RigidBodyControl collider, RigidBodyControl groundCollider) {
+            this(node, collider, groundCollider, null);
+        }
+    }
 
     /** Sub-mesh index of the grass strips inside the track collider (asphalt, paint, grass, walls). */
     public static final int GRASS_PART = 2;
@@ -66,6 +72,7 @@ public final class TrackBuilder {
     private final GroundShade groundShade;
 
     public BuiltTrack build(PhysicsSpace space) {
+        if (TrackSpline.isRoadCourse()) return new RoadCourseBuilder(this, track, assets).build(space);
         Node root = new Node("Track");
 
         Dual asphalt = new Dual();
@@ -135,7 +142,7 @@ public final class TrackBuilder {
         return new BuiltTrack(root, collider, groundCollider);
     }
 
-    private static Geometry geom(String name, Mesh mesh, Material mat, RenderQueue.ShadowMode shadows) {
+    static Geometry geom(String name, Mesh mesh, Material mat, RenderQueue.ShadowMode shadows) {
         Geometry g = new Geometry(name, mesh);
         g.setMaterial(mat);
         g.setShadowMode(shadows);
@@ -156,11 +163,11 @@ public final class TrackBuilder {
         return new Vector3f(v.x, y, v.z);
     }
 
-    private static float[] uvRect(float u0, float v0, float u1, float v1) {
+    static float[] uvRect(float u0, float v0, float u1, float v1) {
         return new float[]{u0, v0, u1, v0, u1, v1, u0, v1};
     }
 
-    private static ColorRGBA gray(float g) {
+    static ColorRGBA gray(float g) {
         return new ColorRGBA(g, g, g, 1);
     }
 
@@ -179,7 +186,7 @@ public final class TrackBuilder {
      * cars spread out. Two slightly darker wheel tracks run inside it in the turns, and the amount
      * of rubber varies a little along the lap.
      */
-    private float grooveShade(float s, float d) {
+    float grooveShade(float s, float d) {
         return ASPHALT_SHADE * (1f - 0.30f * groove(s, d)) * surfaceVariation(s, d);
     }
 
@@ -200,7 +207,8 @@ public final class TrackBuilder {
     /** 0 (clean asphalt) .. ~1.1 (heaviest rubber, in the wheel tracks at the apex). */
     private float groove(float s, float d) {
         if (d < ROAD_INNER - 0.01f || d > ROAD_OUTER) return 0f;
-        float turn = track.bank(s) / BANK_ANGLE;                    // 0 on the straights, 1 in the turns
+        // 0 on the straights, 1 in the turns (the road course: tighter than ~120 m)
+        float turn = TrackSpline.isOval() ? track.bank(s) / BANK_ANGLE : FastMath.clamp(Math.abs(track.curvature(s)) * 120f, 0f, 1f);
         float x = Math.abs(d - racingLine.offset(s));
         float core = 1.0f + 0.9f * (1f - turn);                     // half-width of the full-strength band
         float feather = 1.5f + 0.8f * (1f - turn);                  // gradient out to clean asphalt
@@ -217,7 +225,7 @@ public final class TrackBuilder {
      * the specular and image-based light: a second UV channel whose u is the AO value, sampled
      * from a 1-D identity ramp texture.
      */
-    private void applyGrooveOcclusion(Mesh mesh, Material mat) {
+    void applyGrooveOcclusion(Mesh mesh, Material mat) {
         java.nio.FloatBuffer pos = (java.nio.FloatBuffer) mesh.getBuffer(VertexBuffer.Type.Position).getData();
         int n = mesh.getVertexCount();
         float[] uv2 = new float[n * 2];
@@ -251,7 +259,7 @@ public final class TrackBuilder {
 
     private static float sq(float x) { return x * x; }
 
-    private ColorRGBA groundColor(Vector3f p) {
+    ColorRGBA groundColor(Vector3f p) {
         return groundShade.color(p.x, p.z);
     }
 

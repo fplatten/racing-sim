@@ -31,7 +31,7 @@ public final class WallHitCheck {
         FixedStepPhysics loop = FixedStepPhysics.install(space);
         TrackSpline track = new TrackSpline();
         TrackBuilder.BuiltTrack built = new TrackBuilder(track, assets).build(space);
-        Car car = new Car("TEST", Livery.forIndex(0), true, new VehicleSpec(), new CarModelFactory(assets),
+        Car car = new Car("TEST", Livery.forIndex(0), true, VehicleSpec.forTrack(), new CarModelFactory(assets),
                 space, built.collider(), built.groundCollider());
         loop.addListener(dt -> car.getPhysics().step(dt));
 

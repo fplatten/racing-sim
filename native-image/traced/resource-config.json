@@ -159,6 +159,18 @@
   }, {
     "pattern":"\\QMatDefs/ColorGrade.j3md\\E"
   }, {
+    "pattern":"\\QMatDefs/Livery.frag\\E"
+  }, {
+    "pattern":"\\QMatDefs/Livery.j3md\\E"
+  }, {
+    "pattern":"\\QMatDefs/Livery.vert\\E"
+  }, {
+    "pattern":"\\QModels/Car/f1_wheel_front.glb\\E"
+  }, {
+    "pattern":"\\QModels/Car/f1_wheel_rear.glb\\E"
+  }, {
+    "pattern":"\\QModels/Car/f1car.glb\\E"
+  }, {
     "pattern":"\\QModels/Car/indycar.glb\\E"
   }, {
     "pattern":"\\QModels/Car/wheel_front.glb\\E"
@@ -186,6 +198,8 @@
     "pattern":"\\QTextures/Car/carbon_albedo.png\\E"
   }, {
     "pattern":"\\QTextures/Car/carbon_normal.png\\E"
+  }, {
+    "pattern":"\\QTextures/Car/decals_mask.png\\E"
   }, {
     "pattern":"\\QTextures/Liveries/10-amber-helmet.png\\E"
   }, {

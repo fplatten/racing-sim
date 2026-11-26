@@ -19,11 +19,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 
 /**
- * Builds a race car from the Blender-made glTF models ({@code blender/make_car.py}):
- * the body (monocoque, sidepods, wings, suspension, driver) plus four wheels, with PBR
- * materials and a per-car livery texture painted by {@link LiveryPainter}.
+ * Builds a race car from the Blender-made glTF models: the Indy car ({@code blender/make_car.py})
+ * or the Formula car ({@code blender/make_f1_car.py}), the body (monocoque, sidepods, wings,
+ * suspension, driver) plus four wheels, with PBR materials. The Indy car wears a per-car livery
+ * texture painted by {@link LiveryPainter}; the Formula car is painted at run time in its team's
+ * scheme ({@link CarPaint}); both under a clear coat ({@link FormulaPaint}).
  * Car local frame: +Z forward, +X left, origin = center of mass.
  */
 public final class CarModelFactory {
@@ -32,9 +35,9 @@ public final class CarModelFactory {
     public record CarModel(Node root, Node[] wheelPivots, Node[] wheelSpinners) { }
 
     private final AssetManager assets;
-    private final Spatial bodyTemplate;
-    private final Spatial wheelFrontTemplate;
-    private final Spatial wheelRearTemplate;
+    /** One car's models: body, front and rear wheel (loaded the first time that car is built). */
+    private record Models(Spatial body, Spatial wheelFront, Spatial wheelRear) { }
+    private final Map<VehicleSpec.CarType, Models> models = new java.util.EnumMap<>(VehicleSpec.CarType.class);
     private final Material carbon, black, suspension, visor, light, tire, rim, hub, lip, pad;
     private final BodyDetail detail;
 
@@ -55,12 +58,7 @@ public final class CarModelFactory {
 
     public CarModelFactory(AssetManager assets) {
         this.assets = assets;
-        bodyTemplate = assets.loadModel("Models/Car/indycar.glb");
-        wheelFrontTemplate = assets.loadModel("Models/Car/wheel_front.glb");
-        wheelRearTemplate = assets.loadModel("Models/Car/wheel_rear.glb");
-        MikktspaceTangentGenerator.generate(bodyTemplate);   // paint and carbon are normal mapped
-        MikktspaceTangentGenerator.generate(wheelFrontTemplate);
-        MikktspaceTangentGenerator.generate(wheelRearTemplate);
+        models(VehicleSpec.selectedType());
         detail = BodyDetail.get();
 
         carbon = Pbr.textured(assets, "Textures/Car/carbon_albedo.png", "Textures/Car/carbon_normal.png", null, 0.25f, 0.28f);
@@ -86,26 +84,33 @@ public final class CarModelFactory {
         }
     }
 
+    /** The models of this car (the Indy car's or the Formula car's), loaded on first use. */
+    private Models models(VehicleSpec.CarType type) {
+        return models.computeIfAbsent(type, t -> {
+            boolean formula = t == VehicleSpec.CarType.FORMULA;
+            Spatial body = assets.loadModel(formula ? "Models/Car/f1car.glb" : "Models/Car/indycar.glb");
+            Spatial front = assets.loadModel(formula ? "Models/Car/f1_wheel_front.glb" : "Models/Car/wheel_front.glb");
+            Spatial rear = assets.loadModel(formula ? "Models/Car/f1_wheel_rear.glb" : "Models/Car/wheel_rear.glb");
+            MikktspaceTangentGenerator.generate(body);   // paint and carbon are normal mapped
+            MikktspaceTangentGenerator.generate(front);
+            MikktspaceTangentGenerator.generate(rear);
+            return new Models(body, front, rear);
+        });
+    }
+
     public CarModel build(VehicleSpec spec, Livery livery, float rideHeight, boolean highDetail) {
         Node root = new Node("CarModel-" + livery.name());
+        Models m = models(spec.type);
 
-        // clear-coated paint: roughness, panel-seam AO and the seam / chip normal map are shared
-        Material paint = Pbr.material(assets, ColorRGBA.White, 0f, 1f);
-        Paint painted = paints.containsKey(key(livery, highDetail))
-                ? painting(livery, highDetail).join()              // painted (or being painted) ahead
-                : paintNow(livery, highDetail);
-        paint.setTexture("BaseColorMap", painted.livery());
-        paint.setTexture("MetallicRoughnessMap", detail.aoRoughMetal);
-        paint.setBoolean("AoPackedInMRMap", true);
-        paint.setTexture("NormalMap", detail.normal);
-        paint.setFloat("NormalType", 1.0f);
-        paint.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
-        Material helmet = Pbr.material(assets, ColorRGBA.White, 0f, 0.10f);
-        helmet.setTexture("BaseColorMap", painted.helmet());
+        // the painted parts (Livery*, Helmet): the Formula car's scheme, or the Indy car's baked
+        // livery and helmet textures
+        Function<String, Material> paintFor = spec.type == VehicleSpec.CarType.FORMULA
+                ? FormulaPaint.forLivery(assets, livery)
+                : indyPaint(livery, highDetail);
 
-        Spatial body = bodyTemplate.clone(false);
+        Spatial body = m.body().clone(false);
         body.depthFirstTraversal(s -> {
-            if (s instanceof Geometry g) g.setMaterial(materialFor(partName(g), paint, helmet));
+            if (s instanceof Geometry g) g.setMaterial(materialFor(partName(g), paintFor));
         });
         body.setLocalTranslation(0, -rideHeight, 0);
         root.attachChild(body);
@@ -120,9 +125,9 @@ public final class CarModelFactory {
             Node pivot = new Node("WheelPivot" + i);
             pivot.setLocalTranslation(x, spec.mountHeight - spec.restLength, z);
             Node spinner = new Node("WheelSpin" + i);
-            Spatial wheel = (front ? wheelFrontTemplate : wheelRearTemplate).clone(false);
+            Spatial wheel = (front ? m.wheelFront() : m.wheelRear()).clone(false);
             wheel.depthFirstTraversal(s -> {
-                if (s instanceof Geometry g) g.setMaterial(materialFor(partName(g), paint, helmet));
+                if (s instanceof Geometry g) g.setMaterial(materialFor(partName(g), paintFor));
             });
             if (!leftSide) {
                 // the model's outer face points +X; mirror it for the right-hand wheels
@@ -143,11 +148,30 @@ public final class CarModelFactory {
     }
 
     /**
+     * The Indy car's paint: the livery and helmet textures (baked, or painted now) under the
+     * Formula car's clear coat ({@link FormulaPaint#baked}).
+     */
+    private Function<String, Material> indyPaint(Livery livery, boolean highDetail) {
+        Paint painted = paints.containsKey(key(livery, highDetail))
+                ? painting(livery, highDetail).join()              // painted (or being painted) ahead
+                : paintNow(livery, highDetail);
+        // the body detail: the seam / chip normal map and the panel seams' ambient occlusion (the
+        // R channel of the packed map, read as an AO map); the satin base is evenly rough under the coat
+        Material paint = FormulaPaint.baked(assets, livery, painted.livery(), false);
+        paint.setTexture("LightMap", detail.aoRoughMetal);
+        paint.setBoolean("LightMapAsAOMap", true);
+        paint.setTexture("NormalMap", detail.normal);
+        paint.setFloat("NormalType", 1.0f);
+        Material helmet = FormulaPaint.baked(assets, livery, painted.helmet(), true);
+        return name -> name.startsWith("Livery") ? paint : name.startsWith("Helmet") ? helmet : null;
+    }
+
+    /**
      * Starts painting this livery's textures on a background thread (once; queued in call order)
      * so a later {@link #build} does not have to wait for them.
      */
     public void prepaint(Livery livery, boolean highDetail) {
-        painting(livery, highDetail);
+        if (VehicleSpec.selectedType() == VehicleSpec.CarType.INDY) painting(livery, highDetail);
     }
 
     private CompletableFuture<Paint> painting(Livery livery, boolean highDetail) {
@@ -157,7 +181,8 @@ public final class CarModelFactory {
 
     /** True when {@link #build} can make this car without waiting for paint (starts painting it if needed). */
     public boolean isPainted(Livery livery, boolean highDetail) {
-        return painting(livery, highDetail).isDone();
+        // (the Formula car is painted as it is built: nothing to wait for)
+        return VehicleSpec.selectedType() == VehicleSpec.CarType.FORMULA || painting(livery, highDetail).isDone();
     }
 
     /** The baked textures from the build ({@link LiveryBaker}), or painted now when they're missing. */
@@ -183,11 +208,11 @@ public final class CarModelFactory {
         return "";
     }
 
-    private Material materialFor(String name, Material paint, Material helmet) {
-        if (name.startsWith("Livery")) return paint;
+    private Material materialFor(String name, Function<String, Material> paintFor) {
+        Material painted = paintFor.apply(name);
+        if (painted != null) return painted;
         if (name.startsWith("Carbon")) return carbon;
         if (name.startsWith("Suspension") || name.startsWith("Susp")) return suspension;
-        if (name.startsWith("Helmet")) return helmet;
         if (name.startsWith("Visor")) return visor;
         if (name.startsWith("Pad")) return pad;
         if (name.startsWith("Lip") || name.contains("Lip")) return lip;

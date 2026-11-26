@@ -11,21 +11,32 @@ public final class AeroModel {
     /**
      * Wing settings: minimum downforce (the low-drag superspeedway trim, best top speed) to
      * maximum downforce (steeper wings: much more grip, but more drag and a lower top speed).
+     * The defaults are the Indy car's; each car sets its own from its
+     * {@link com.racingsim.vehicle.VehicleSpec} ({@link #setAreas}).
      */
-    public static final float MIN_DRAG_AREA = 0.75f, MIN_LIFT_AREA = 2.2f;
-    public static final float MAX_DRAG_AREA = 0.98f, MAX_LIFT_AREA = 4.0f;
+    public float minDragArea = 0.75f, minLiftArea = 2.2f;
+    public float maxDragArea = 0.98f, maxLiftArea = 4.0f;
 
     /** Drag area Cd*A (m^2). */
-    public float dragArea = MIN_DRAG_AREA;
+    public float dragArea = minDragArea;
     /** Lift (downforce) area Cl*A (m^2). */
-    public float liftArea = MIN_LIFT_AREA;
+    public float liftArea = minLiftArea;
     private float downforceLevel;
+
+    /** Sets the car's drag and downforce areas at minimum and maximum wing, then minimum wing. */
+    public void setAreas(float minDrag, float minLift, float maxDrag, float maxLift) {
+        minDragArea = minDrag;
+        minLiftArea = minLift;
+        maxDragArea = maxDrag;
+        maxLiftArea = maxLift;
+        setDownforceLevel(0f);
+    }
 
     /** Sets the wing level: 0 = minimum downforce (max speed) .. 1 = maximum downforce (max control). */
     public void setDownforceLevel(float level) {
         downforceLevel = Math.max(0f, Math.min(1f, level));
-        dragArea = MIN_DRAG_AREA + (MAX_DRAG_AREA - MIN_DRAG_AREA) * downforceLevel;
-        liftArea = MIN_LIFT_AREA + (MAX_LIFT_AREA - MIN_LIFT_AREA) * downforceLevel;
+        dragArea = minDragArea + (maxDragArea - minDragArea) * downforceLevel;
+        liftArea = minLiftArea + (maxLiftArea - minLiftArea) * downforceLevel;
     }
 
     /** Current wing level, 0 (min downforce) .. 1 (max downforce). */

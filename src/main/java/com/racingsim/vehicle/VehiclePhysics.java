@@ -111,6 +111,10 @@ public final class VehiclePhysics {
         this.grounds = grounds;
         this.input = input;
         this.gearbox = new Gearbox(spec);
+        // this car's tires and aero (the Indy car's or the Formula car's)
+        tire.mu = spec.tireMu;
+        tire.loadSensitivity = spec.tireLoadSensitivity;
+        aero.setAreas(spec.minDragArea, spec.minLiftArea, spec.maxDragArea, spec.maxLiftArea);
         float my = spec.mountHeight;
         wheels[FL] = new Wheel(new Vector3f(spec.frontHalfTrack, my, spec.frontAxleZ), true, false);
         wheels[FR] = new Wheel(new Vector3f(-spec.frontHalfTrack, my, spec.frontAxleZ), true, false);

@@ -127,6 +127,20 @@ public final class CarAudio {
         }
     }
 
+    /** Stops and removes every sound for good (the world is being built again for another track). */
+    public void dispose() {
+        playing = false;
+        java.util.Set<AudioNode> nodes = new java.util.HashSet<>(all);
+        nodes.addAll(aiEngineCache.values());
+        for (AudioNode n : nodes) {
+            if (n.getStatus() != AudioSource.Status.Stopped) n.stop();
+            n.removeFromParent();
+        }
+        all.clear();
+        aiEngines.clear();
+        aiCars.clear();
+    }
+
     public void update(float tpf) {
         if (!playing) return;
         VehiclePhysics p = player.getPhysics();

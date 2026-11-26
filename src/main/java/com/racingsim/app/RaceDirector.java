@@ -26,18 +26,28 @@ import java.util.Map;
  *   <li>step each car's {@code VehiclePhysics}</li>
  *   <li>lap / position bookkeeping and AI recovery</li>
  * </ol>
+ * The oval has a rolling start, three abreast; the road course a standing start: the field lines
+ * up two by two, staggered, and waits on the brakes while five red lights come on, one a second;
+ * the race (and its clock) starts when they go out ({@link #startLights()}, {@link #greenTime()}).
  */
 public final class RaceDirector implements FixedStepPhysics.Listener {
 
-    /** Every race starts on the front straight, just off the last turn (rolling start). */
-    public static final float STRAIGHT_START_S = TrackSpline.LENGTH - TrackSpline.STRAIGHT / 2f;
+    /** Every oval race starts on the front straight, just off the last turn (rolling start). */
+    public static final float STRAIGHT_START_S = TrackSpline.OVAL_LENGTH - TrackSpline.STRAIGHT / 2f;
     /** Indianapolis-style grid: rows of three, pole position on the inside. */
     public static final int GRID_COLUMNS = 3;
     public static final float GRID_ROW_GAP = 18f;
     private static final float[] GRID_LANES = {-4.6f, -0.4f, 3.8f};
     public static final float ROLLING_START_SPEED = 58f;   // m/s (~130 mph)
+    /** Standing start (road course): two by two, staggered, the pole 8 m behind the line. */
+    private static final float POLE_GAP = 8f, STAGGER_GAP = 7.5f, STAGGER_LANE = 3.0f;
+    /** Standing start: a red light comes on every LIGHT_INTERVAL s; all five go out together. */
+    public static final float LIGHT_INTERVAL = 1f, LIGHTS_OUT_AT = 6.2f;
+
     /** Inside line used when the player resets - well clear of the AI groove on the straights. */
-    private static final float RESET_LANE = -6.0f;
+    private static float resetLane() {
+        return TrackSpline.isOval() ? -6.0f : -4.0f;
+    }
 
     private final TrackSpline track;
     private final RacingLine racingLine;
@@ -47,9 +57,11 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
     private final Map<Car, AIDriver> driverOf = new HashMap<>();
     private final Map<Car, PitStop> pits = new HashMap<>();
     private final DraftingSystem drafting = new DraftingSystem();
-    /** AI wing levels are drawn at random for every race, in the menu slider's steps. */
+    /** AI wing levels: each driver type's own, +-1 at random for every race, in the menu slider's steps. */
     private final java.util.Random setupRandom = new java.util.Random(2024);
     public static final int DOWNFORCE_STEPS = 10;
+    /** Highest wing level an AI car runs (of DOWNFORCE_STEPS). */
+    public static final int AI_MAX_DOWNFORCE = DOWNFORCE_STEPS;
     private LapTracker lapTracker = new LapTracker();
     private final PlayerInput playerInput;
     private Car player;
@@ -57,6 +69,8 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
     private Runnable onPlayerReset = () -> { };
     private int recoveries;
     private volatile boolean running;
+    /** Standing start: time since the field lined up (-1: the lights are out), and since they went out. */
+    private volatile float lightsTime = -1f, greenTime = -1f;
     /** Optional replacement for the keyboard (headless tests drive the player car with it). */
     private java.util.function.BiConsumer<Car, Float> playerOverride;
 
@@ -103,18 +117,43 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
     public Car getPlayer() { return player; }
     public LapTracker getLapTracker() { return lapTracker; }
     public LapTracker.Entry entryOf(Car car) { return entries.get(car); }
+    /** The car behind a standings entry (null if it is not in the field). */
+    public Car carOf(LapTracker.Entry e) {
+        for (Map.Entry<Car, LapTracker.Entry> m : entries.entrySet()) if (m.getValue() == e) return m.getKey();
+        return null;
+    }
+    /** The AI driving a car, or null for the human player. */
+    public AIDriver driverOf(Car car) { return driverOf.get(car); }
     public void requestPlayerReset() { resetRequested = true; }
     /** Number of AI recovery resets so far (diagnostics). */
     public int getRecoveries() { return recoveries; }
     public void setOnPlayerReset(Runnable r) { onPlayerReset = r; }
     public boolean isRunning() { return running; }
+
+    /** Standing start: red lights lit (0..5) while the field waits; -1 once they are out (or a rolling start). */
+    public int startLights() {
+        float t = lightsTime;
+        return t >= 0f ? Math.clamp((int) Math.floor(t / LIGHT_INTERVAL), 0, 5) : -1;
+    }
+
+    /** Seconds since the lights went out (for a "GO"), -1 otherwise (and 3 s after). */
+    public float greenTime() { return greenTime; }
+
+    /** True while the field waits on the grid for the lights to go out. */
+    public boolean waitingForLights() { return running && lightsTime >= 0f; }
     public void setPlayerOverride(java.util.function.BiConsumer<Car, Float> override) { playerOverride = override; }
 
     /**
-     * Grid position (s, d) of a slot (0 = pole): rows of three abreast, pole on the inside; the
-     * last row sits at the exit of turn 4 so the whole field is on the front straight.
+     * Grid position (s, d) of a slot (0 = pole). The oval: rows of three abreast, pole on the
+     * inside; the last row sits at the exit of turn 4 so the whole field is on the front straight.
+     * The road course: two by two, staggered, behind the start line.
      */
     public static float[] gridSlot(int slot, int carCount) {
+        if (TrackSpline.isRoadCourse()) {
+            // pole on the left (the outside line into the first turn, a right-hander), each car
+            // half a row behind the one before it on the other side
+            return new float[]{TrackSpline.wrapS(-POLE_GAP - slot * STAGGER_GAP), slot % 2 == 0 ? -STAGGER_LANE : STAGGER_LANE};
+        }
         int rows = (carCount + GRID_COLUMNS - 1) / GRID_COLUMNS;
         float frontS = STRAIGHT_START_S + (rows - 1) * GRID_ROW_GAP + 5f;
         int row = slot / GRID_COLUMNS, col = slot % GRID_COLUMNS;
@@ -137,12 +176,13 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
         for (Car c : field) addCar(c, aiDrivers.get(c));
     }
 
-    /** Lines every car up on the rolling-start grid (in the order they were added). */
+    /** Lines every car up on the grid (in the order they were added): rolling on the oval, stopped on the road course. */
     public void placeGrid() {
+        float speed = TrackSpline.isOval() ? ROLLING_START_SPEED : 0f;
         for (int i = 0; i < cars.size(); i++) {
             float[] g = gridSlot(i, cars.size());
             Car c = cars.get(i);
-            c.placeOnTrack(track, g[0], g[1], ROLLING_START_SPEED);
+            c.placeOnTrack(track, g[0], g[1], speed);
             c.updateTrackPosition(track);
         }
     }
@@ -154,7 +194,11 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
 
     /** Resets the field to the grid and starts a race of {@code laps} laps with {@code stops} mandatory pit stops. */
     public void startRace(int laps, int stops) {
+        if (!TrackSpline.layout().hasPits()) stops = 0;      // the road course has no pit lane
         placeGrid();
+        // the oval: a rolling start; the road course: a standing start behind the lights
+        lightsTime = TrackSpline.isRoadCourse() ? 0f : -1f;
+        greenTime = -1f;
         lapTracker.newRace(laps, stops);
         for (int i = 0; i < cars.size(); i++) {
             Car c = cars.get(i);
@@ -164,7 +208,17 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
             lapTracker.reset(entries.get(c), c.trackS());
             AIDriver ai = driverOf.get(c);
             if (ai != null) {
-                ai.setDownforceLevel(setupRandom.nextInt(DOWNFORCE_STEPS + 1) / (float) DOWNFORCE_STEPS);
+                // Each driver's own wing level: rookies run a heavy wing (stable, slower), veterans a
+                // light one (fast, loose), +-1 at random. Tuning: -DaiDownforce=<0..10> gives every AI
+                // that level, -DaiWingMax=<0..10> caps it.
+                int wingMax = Integer.getInteger("aiWingMax", AI_MAX_DOWNFORCE);
+                int wing = Math.min(ai.preferredWing(DOWNFORCE_STEPS, setupRandom.nextInt(3) - 1),
+                        Math.clamp(wingMax, 0, DOWNFORCE_STEPS));
+                int forced = Integer.getInteger("aiDownforce", -1);
+                if (forced >= 0) wing = Math.min(forced, DOWNFORCE_STEPS);
+                ai.setDownforceLevel(wing / (float) DOWNFORCE_STEPS);
+                System.out.printf("AI driver: %-9s %-7s (aggression %.2f) wing %d/%d%n", c.getName(),
+                        AIDriver.typeName(ai.getAggression()), ai.getAggression(), wing, DOWNFORCE_STEPS);
                 ai.resetForRace();
             }
         }
@@ -197,7 +251,21 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
     @Override
     public void fixedStep(float dt) {
         if (!running) return;
-        if (resetRequested) {
+        // standing start: the field waits on the grid while the five red lights come on, one a
+        // second, and goes when they go out
+        boolean waiting = lightsTime >= 0f;
+        if (waiting) {
+            lightsTime += dt;
+            if (lightsTime >= LIGHTS_OUT_AT) {
+                lightsTime = -1f;
+                greenTime = 0f;
+                lapTracker.startClock();
+            }
+        } else if (greenTime >= 0f) {
+            greenTime += dt;
+            if (greenTime > 3f) greenTime = -1f;
+        }
+        if (resetRequested && !waiting) {
             resetRequested = false;
             resetPlayer();
         }
@@ -206,11 +274,20 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
 
         drafting.update(cars, dt);
 
-        if (player != null) {
-            if (playerOverride != null) playerOverride.accept(player, dt);
-            else playerInput.apply(player.getInput(), dt, player.getPhysics().getForwardSpeed());
+        if (waiting) {
+            // lined up on the grid, waiting for the lights: held on the brakes (not hard enough to
+            // engage reverse)
+            for (Car c : cars) {
+                c.getInput().clear();
+                c.getInput().brake = 0.45f;
+            }
+        } else {
+            if (player != null) {
+                if (playerOverride != null) playerOverride.accept(player, dt);
+                else playerInput.apply(player.getInput(), dt, player.getPhysics().getForwardSpeed());
+            }
+            for (AIDriver ai : drivers) ai.update(dt, cars);
         }
-        for (AIDriver ai : drivers) ai.update(dt, cars);
 
         for (Car c : cars) {
             c.getInput().pitHold = pits.get(c).isServicing();
@@ -227,8 +304,8 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
         for (AIDriver ai : drivers) {
             Car c = ai.getCar();
             Vector3f up = c.getBody().getPhysicsRotation().mult(Vector3f.UNIT_Y);
-            boolean offTrack = c.trackD() < PitLane.innerLimit(c.trackS()) - 1f || c.trackD() > TrackSpline.ROAD_OUTER + 2f
-                    || c.getBody().getPhysicsLocation().y < -3f;
+            boolean offTrack = c.trackD() < track.minD(c.trackS()) - 1f || c.trackD() > track.maxD(c.trackS()) + 2f
+                    || c.getBody().getPhysicsLocation().y < track.elevation(c.trackS()) - 3f;
             if (ai.needsRecovery() || up.y < 0.3f || offTrack) recover(ai);
         }
     }
@@ -254,13 +331,14 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
         if (player == null) return;
         // restart on the inside lane, clear of the AI groove (which runs high on the straights);
         // move over if an AI car happens to be right there
-        float d = RESET_LANE;
+        float d = resetLane();
         for (Car c : cars) {
             if (c != player && Math.abs(TrackSpline.deltaS(0f, c.trackS())) < 12f && Math.abs(c.trackD() - d) < 3f) {
                 d = c.trackD() + 3.5f;
             }
         }
-        player.placeOnTrack(track, 0f, FastMath.clamp(d, -6.0f, 6f), 0f);
+        float edge = TrackSpline.isOval() ? 6f : TrackSpline.ROAD_OUTER - 1.5f;
+        player.placeOnTrack(track, 0f, FastMath.clamp(d, -edge, edge), 0f);
         playerInput.clearCommands();
         lapTracker.resetToLine(entries.get(player));
         onPlayerReset.run();
@@ -277,14 +355,15 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
         Vector3f pos = player.getBody().getPhysicsLocation();
         Vector3f up = player.getBody().getPhysicsRotation().mult(Vector3f.UNIT_Y);
         playerUpsideDown = up.y < 0.25f ? playerUpsideDown + dt : 0f;
-        boolean outside = player.trackD() > TrackSpline.ROAD_OUTER + TrackSpline.OUTER_WALL_THICKNESS + 0.5f
-                || player.trackD() < PitLane.innerLimit(player.trackS()) - 0.5f;
+        float ps = player.trackS();
+        boolean outside = player.trackD() > track.maxD(ps) + (TrackSpline.isOval() ? TrackSpline.OUTER_WALL_THICKNESS : 0f) + 0.5f
+                || player.trackD() < track.minD(ps) - 0.5f;
         playerOutside = outside ? playerOutside + dt : 0f;
-        if (pos.y > -3f && playerUpsideDown < 2.0f && playerOutside < 3.0f) return;
+        if (pos.y > track.elevation(ps) - 3f && playerUpsideDown < 2.0f && playerOutside < 3.0f) return;
         playerUpsideDown = 0f;
         playerOutside = 0f;
         float s = TrackSpline.wrapS(player.trackS());
-        float d = RESET_LANE;
+        float d = resetLane();
         if (!rejoinClear(player, s, d)) d = TrackSpline.ROAD_OUTER - 1.5f;
         player.placeOnTrack(track, s, d, 25f);
         lapTracker.teleport(entries.get(player), s);
@@ -308,7 +387,7 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
         // rejoin on the racing line, or on the inside if that would drop the car in front of
         // someone; if both are occupied wait for the traffic to pass
         float d = Float.NaN;
-        for (float candidate : new float[]{racingLine.offset(s), -5.5f}) {
+        for (float candidate : new float[]{racingLine.offset(s), TrackSpline.isOval() ? -5.5f : 0f}) {
             if (rejoinClear(c, s, candidate)) {
                 d = candidate;
                 break;

@@ -26,6 +26,11 @@ import static com.racingsim.track.TrackSpline.*;
  * Places the Blender-made trackside props ({@code blender/make_props.py}): covered grandstands
  * along both straights, the timing tower, hospitality tents, light towers and a few hundred
  * trees. Props are merged per material to keep the draw-call count low.
+ * <p>
+ * Round the road course (port of the Unreal version's Track/Scenery.cpp): stands opposite the
+ * paddock, round the first-turn hairpin, beside the valley sweep and at the last chicane, the
+ * timing tower and hospitality tents on the left of the grid, and woods on the hills; everything
+ * stands on the {@link Terrain}.
  */
 public final class Scenery {
 
@@ -35,6 +40,12 @@ public final class Scenery {
             new ColorRGBA(0.86f, 0.88f, 0.80f, 1f), new ColorRGBA(0.70f, 0.80f, 0.76f, 1f), new ColorRGBA(0.98f, 0.94f, 0.70f, 1f)};
     /** Trees are batched per square cell of this size (m) so off-screen woods are culled. */
     private static final float TREE_CELL = 250f;
+    /** Road course: cells of trees further than this (m) are not drawn (the hills' canopy color takes over). */
+    private static final float TREE_CULL_DISTANCE = 1200f, TREE_SHADOW_DISTANCE = 200f;
+    /** Road course: only trees this close (m) beyond the barriers cast shadows (the forest's would cost too much). */
+    private static final float TREE_SHADOW_REACH = 80f;
+    /** Whether the trees being planted go into shadow-casting cells (the road course's near trees). */
+    private boolean castingCells;
     /** Distant tree lines: offsets from the centerline (m) and heights. */
     private static final float NEAR_TREELINE_D = 330f, NEAR_TREELINE_H = 22f;
     private static final float FAR_TREELINE_D = 560f, FAR_TREELINE_H = 30f;
@@ -44,11 +55,24 @@ public final class Scenery {
     private final Map<String, Material> materials = new HashMap<>();
     private final Random rnd = new Random(1990);
     private final List<Vector3f> occupied = new ArrayList<>();
+    /** The road course's hills (null round the oval: flat ground). */
+    private final Terrain terrain;
 
     public Scenery(AssetManager assets, TrackSpline track) {
+        this(assets, track, null);
+    }
+
+    /** @param terrain the land the props stand on (the road course), or null for flat ground */
+    public Scenery(AssetManager assets, TrackSpline track, Terrain terrain) {
         this.assets = assets;
         this.track = track;
+        this.terrain = terrain;
         createMaterials();
+    }
+
+    /** Height (m) for a prop at a world position: 0 round the oval, the land round the road course. */
+    private float groundAt(Vector3f p) {
+        return terrain == null ? 0f : terrain.height(p.x, p.z) - 0.1f;
     }
 
     private void createMaterials() {
@@ -132,7 +156,7 @@ public final class Scenery {
         if (yawJitter != 0) q = new Quaternion().fromAngleAxis(yawJitter, Vector3f.UNIT_Y).mult(q);
         sp.setLocalRotation(q);
         Vector3f pos = track.centerline(s, new Vector3f()).addLocal(r.mult(d));
-        pos.y = 0;
+        pos.y = groundAt(pos);
         sp.setLocalTranslation(pos);
         sp.setLocalScale(scale);
         occupied.add(pos);
@@ -147,7 +171,7 @@ public final class Scenery {
         Spatial sp = template.clone(false);
         Vector3f hi = track.centerline(sHi, new Vector3f()).addLocal(track.right(sHi, null).multLocal(d));
         Vector3f lo = track.centerline(sLo, new Vector3f()).addLocal(track.right(sLo, null).multLocal(d));
-        hi.y = lo.y = 0;
+        hi.y = lo.y = Math.min(groundAt(hi), groundAt(lo));
         Vector3f x = lo.subtract(hi);
         float len = x.length();
         x.divideLocal(len);
@@ -160,6 +184,7 @@ public final class Scenery {
     }
 
     public Node build() {
+        if (TrackSpline.isRoadCourse()) return buildRoadCourse();
         Node root = new Node("Scenery");
         Node stands = new Node("Stands");
         Node trees = new Node("Trees");
@@ -197,6 +222,14 @@ public final class Scenery {
 
         int planted = plantTrees(trees);
 
+        finish(root, stands, trees, planted);
+        root.attachChild(treeline(NEAR_TREELINE_D, NEAR_TREELINE_H, null, 0f));
+        root.attachChild(treeline(FAR_TREELINE_D, FAR_TREELINE_H, new ColorRGBA(0.035f, 0.045f, 0.06f, 1f), 0.37f));
+        return root;
+    }
+
+    /** Merges the stands and each cell of trees per material and attaches them. */
+    private void finish(Node root, Node stands, Node trees, int planted) {
         MikktspaceTangentGenerator.generate(stands);
         GeometryBatchFactory.optimize(stands);
         for (Spatial cell : new ArrayList<>(trees.getChildren())) {
@@ -208,9 +241,88 @@ public final class Scenery {
         trees.setShadowMode(RenderQueue.ShadowMode.Cast);
         root.attachChild(stands);
         root.attachChild(trees);
-        root.attachChild(treeline(NEAR_TREELINE_D, NEAR_TREELINE_H, null, 0f));
-        root.attachChild(treeline(FAR_TREELINE_D, FAR_TREELINE_H, new ColorRGBA(0.035f, 0.045f, 0.06f, 1f), 0.37f));
+    }
+
+    // ------------------------------------------------------------------ the road course
+    /**
+     * Stands along the start / finish straight and round the first-turn hairpin, the paddock and
+     * timing tower on the left of the grid, stands beside the valley sweep and at the last chicane,
+     * and forest everywhere else. (No distant tree lines: the terrain turns to forest canopy.)
+     */
+    private Node buildRoadCourse() {
+        Node root = new Node("Scenery");
+        Node stands = new Node("Stands");
+        Node trees = new Node("Trees");
+        Spatial grandstand = load("grandstand.glb");
+        placeStands(stands, grandstand, -240f, 40f, true, 4f);       // opposite the pits
+        placeStands(stands, grandstand, 120f, 280f, false, 5f);      // round the outside of the first-turn hairpin
+        placeStands(stands, grandstand, 700f, 860f, false, 6f);      // the valley sweep
+        placeStands(stands, grandstand, 6580f, 6700f, true, 5f);     // the last chicane
+        float d = Float.MAX_VALUE;
+        for (float q = -160f; q <= 40f; q += 5f) d = Math.min(d, track.minD(wrapS(q)));
+        stands.attachChild(place(load("timing_tower.glb"), wrapS(-60f), d - 30f, false, 0, 1f));
+        Spatial tent = load("tent.glb");
+        for (int i = 0; i < 6; i++) {
+            stands.attachChild(place(tent, wrapS(-200f + i * 22f), d - 22f - (i % 2) * 14f, false, 0, 1f));
+        }
+        int planted = plantForest(trees);
+        finish(root, stands, trees, planted);
         return root;
+    }
+
+    /** Grandstand modules along s0..s1 just behind the barrier on one side, following the bends. */
+    private void placeStands(Node stands, Spatial grandstand, float s0, float s1, boolean right, float back) {
+        for (float s = s0; s + MODULE <= s1 + 1f; s += MODULE) {
+            float d = right ? -Float.MAX_VALUE : Float.MAX_VALUE;
+            for (float q = s; q <= s + MODULE; q += 4f) {
+                d = right ? Math.max(d, track.maxD(wrapS(q))) : Math.min(d, track.minD(wrapS(q)));
+            }
+            d += right ? back : -back;
+            if (right) stands.attachChild(placeChord(grandstand, wrapS(s), wrapS(s + MODULE), d));
+            else stands.attachChild(placeChord(grandstand, wrapS(s + MODULE), wrapS(s), d));
+        }
+    }
+
+    /**
+     * Spruce and broadleaf woods in patches on the hills, from a little way past the barriers to
+     * where the terrain turns to distant forest.
+     * @return number of trees planted
+     */
+    private int plantForest(Node trees) {
+        // trees near the track (whose shadows fall on the road and the run-off) and the rest of the
+        // forest are batched apart: only the near ones cast shadows (see FarCulledNode)
+        Map<Long, Node> cells = new HashMap<>(), nearCells = new HashMap<>();
+        float minX = Float.MAX_VALUE, maxX = -Float.MAX_VALUE, minZ = Float.MAX_VALUE, maxZ = -Float.MAX_VALUE;
+        for (float s = 0; s < LENGTH; s += 10f) {
+            Vector3f p = track.centerline(s, new Vector3f());
+            minX = Math.min(minX, p.x);
+            maxX = Math.max(maxX, p.x);
+            minZ = Math.min(minZ, p.z);
+            maxZ = Math.max(maxZ, p.z);
+        }
+        int planted = 0;
+        float step = 15f, reach = 330f;
+        TrackPos tp = new TrackPos();
+        for (float x = minX - reach; x < maxX + reach; x += step) {
+            for (float z = minZ - reach; z < maxZ + reach; z += step) {
+                float px = x + (rnd.nextFloat() - 0.5f) * step * 0.8f, pz = z + (rnd.nextFloat() - 0.5f) * step * 0.8f;
+                float beyond = Terrain.beyondWall(track, px, pz, tp);
+                if (beyond < 14f || beyond > reach) continue;
+                float patches = GroundShade.fbm(px / 170f, pz / 170f, 3, 51);
+                float density = smooth((patches + 0.3f * smooth((beyond - 14f) / 90f) - 0.42f) / 0.2f);
+                if (rnd.nextFloat() > density * 0.85f) continue;
+                Vector3f pos = new Vector3f(px, 0, pz);
+                if (tooClose(pos, 18f)) continue;
+                pos.y = groundAt(pos);
+                float u = rnd.nextFloat();
+                int species = u < 0.45f ? SPRUCE : u < 0.68f ? OAK : u < 0.88f ? MAPLE : YOUNG;
+                castingCells = beyond < TREE_SHADOW_REACH;
+                planted += plant(castingCells ? nearCells : cells, species, pos, 0.85f + rnd.nextFloat() * 0.45f);
+            }
+        }
+        for (Node cell : cells.values()) trees.attachChild(cell);
+        for (Node cell : nearCells.values()) trees.attachChild(cell);
+        return planted;
     }
 
     // ------------------------------------------------------------------ trees
@@ -322,12 +434,41 @@ public final class Scenery {
 
     private int plant(java.util.Map<Long, Node> cells, int species, Vector3f pos, float scale) {
         Spatial t = treeTemplate(species, rnd.nextInt(LEAF_TINTS.length)).clone(false);
-        t.setLocalTranslation(pos.x, -0.05f, pos.z);
+        t.setLocalTranslation(pos.x, terrain == null ? -0.05f : pos.y, pos.z);
         t.setLocalRotation(new Quaternion().fromAngleAxis(rnd.nextFloat() * FastMath.TWO_PI, Vector3f.UNIT_Y));
         t.setLocalScale(scale, scale * (0.9f + rnd.nextFloat() * 0.2f), scale);
         long key = ((long) Math.floor(pos.x / TREE_CELL) << 32) ^ ((long) Math.floor(pos.z / TREE_CELL) & 0xffffffffL);
-        cells.computeIfAbsent(key, k -> new Node("TreeCell")).attachChild(t);
+        cells.computeIfAbsent(key, k -> terrain == null ? new Node("TreeCell") : new FarCulledNode("TreeCell", TREE_CULL_DISTANCE, castingCells))
+                .attachChild(t);
         return 1;
+    }
+
+    /**
+     * A cell of the road course's woods: not drawn beyond {@code distance} from the camera, and
+     * casting shadows only within {@link #TREE_SHADOW_DISTANCE} (the shadow maps reach ~220 m; with
+     * the low sun, every tree on the hills would otherwise be drawn into them). Decided as the main
+     * camera culls the scene, before the shadow renderer collects its casters for the frame.
+     */
+    private static final class FarCulledNode extends Node {
+        private final float distance;
+        private final boolean castsShadows;
+
+        FarCulledNode(String name, float distance, boolean castsShadows) {
+            super(name);
+            this.distance = distance;
+            this.castsShadows = castsShadows;
+            if (!castsShadows) setShadowMode(RenderQueue.ShadowMode.Off);
+        }
+
+        @Override
+        public boolean checkCulling(com.jme3.renderer.Camera cam) {
+            if (getWorldBound() != null) {
+                float d = getWorldBound().distanceToEdge(cam.getLocation());
+                if (castsShadows) setShadowMode(d < TREE_SHADOW_DISTANCE ? RenderQueue.ShadowMode.Cast : RenderQueue.ShadowMode.Off);
+                if (d > distance) return false;
+            }
+            return super.checkCulling(cam);
+        }
     }
 
     /** A random free infield point at least {@code margin} m inside the track's infield limit. */
@@ -387,7 +528,8 @@ public final class Scenery {
 
     private boolean tooClose(Vector3f p, float min) {
         for (Vector3f o : occupied) {
-            if (o.distanceSquared(p) < min * min) return true;
+            float dx = o.x - p.x, dz = o.z - p.z;                     // on the ground plan (hills)
+            if (dx * dx + dz * dz < min * min) return true;
         }
         return false;
     }

@@ -79,7 +79,13 @@ public final class LapTracker {
     /** Records a completed pit stop. */
     public void pitStopCompleted(Entry e) { e.pitStops++; }
 
-    /** Race clock: time since the leader took the green flag (first crossing of the line). */
+    /** A standing start: the race clock starts as the lights go out, not at the line. */
+    public void startClock() {
+        raceStartTime = time;
+    }
+
+    /** Race clock: time since the leader took the green flag (first crossing of the line), or since
+     *  the lights went out at a standing start. */
     public float raceTime() {
         return Float.isNaN(raceStartTime) ? 0f : time - raceStartTime;
     }
@@ -148,9 +154,9 @@ public final class LapTracker {
                 e.finishOrder = ++finishedCount;
                 e.finishTime = raceTime();
             }
-        } else if (newLap < e.lapIndex) {
-            e.lapIndex = newLap; // driving backward over the line
         }
+        // Driving (or spinning) backward over the line leaves the lap count alone: crossing it
+        // forward again is not a new lap. (Lowering it here made that crossing a bogus few-second lap.)
     }
 
     public void advanceTime(float dt) {

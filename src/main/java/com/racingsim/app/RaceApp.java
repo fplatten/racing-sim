@@ -17,6 +17,7 @@ import com.racingsim.physics.FixedStepPhysics;
 import com.racingsim.track.LapTracker;
 import com.racingsim.track.Scenery;
 import com.racingsim.track.TrackBuilder;
+import com.racingsim.track.TrackLayout;
 import com.racingsim.track.TrackSpline;
 import com.racingsim.ui.ConfirmDialog;
 import com.racingsim.ui.Hud;
@@ -36,9 +37,11 @@ import java.util.Random;
 
 /**
  * The game: shows a splash screen with a loading bar while the world is built step by step (one
- * step per frame so the bar animates), then runs MENU (race length 5 / 10 laps, 1-32 opponents, the
- * player's starting position, 0-3 mandatory pit stops) -> RACE (rolling start three abreast from the beginning of the
- * front straight, off the last turn) -> RESULTS (checkered flag) -> back to the MENU.
+ * step per frame so the bar animates), then runs MENU (track, race length, 1-32 opponents, the
+ * player's starting position, 0-3 mandatory pit stops) -> RACE (oval: rolling start three abreast from the beginning of the
+ * front straight, off the last turn; road course: standing start behind five red lights) -> RESULTS
+ * (checkered flag) -> back to the MENU. Changing the TRACK in the menu builds the world again
+ * (track, scenery, physics, cars) behind the splash, keeping the other settings.
  * AI cars are created on demand (up to a 33-car field) and reused between races.
  */
 public final class RaceApp extends SimpleApplication implements ActionListener {
@@ -82,6 +85,10 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
     private Environment environment;
     private float finishedFor;
     private float orbitAngle;
+    /** Everything that belongs to one track (track, scenery, cars, their sound and smoke): dropped on a change of track. */
+    private com.jme3.scene.Node world = new com.jme3.scene.Node("World");
+    /** False while the world is being built again for another track (the menu and HUD are kept). */
+    private boolean firstLoad = true;
 
     // ---- startup splash / loading ----
     private record LoadStep(String label, Runnable work) { }
@@ -141,17 +148,36 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
             // fixed-step recording: the game runs at exactly 30 fps of video time
             stateManager.attach(new com.jme3.app.state.VideoRecorderAppState(new java.io.File(movieFile), 0.8f, MOVIE_FPS));
         }
+        // the track: -Dtrack=road (or ./gradlew run -Ptrack=road) races on the road course
+        TrackSpline.selectLayout(TrackLayout.fromSystemProperty());
+        rootNode.attachChild(world);
+        startLoading();
+    }
+
+    /** Shows a fresh splash (it names the track) and plans the loading steps. */
+    private void startLoading() {
         state = State.LOADING;
+        loadSteps.clear();
+        loadIndex = loadFrames = warmupFrames = 0;
+        splashFade = -1f;
+        if (splash != null) guiNode.detachChild(splash.getNode());
         splash = new SplashScreen(assetManager, guiFont, settings.getWidth(), settings.getHeight());
         splash.getNode().setLocalTranslation(0, 0, 10f);          // above every other GUI layer
         guiNode.attachChild(splash.getNode());
         planLoading();
     }
 
-    /** The startup work, split into steps that each run in their own frame. */
+    /**
+     * The loading work, split into steps that each run in their own frame. At startup it builds
+     * everything; on a change of track ({@link #switchTrack}) only the world: the sky, the input,
+     * the menu, the HUD and the painted cars are kept.
+     */
     private void planLoading() {
-        loadSteps.add(new LoadStep("Lighting the sky", () ->
-                environment = new Environment(assetManager, rootNode, viewPort)));
+        boolean first = firstLoad;
+        if (first) {
+            loadSteps.add(new LoadStep("Lighting the sky", () ->
+                    environment = new Environment(assetManager, rootNode, viewPort)));
+        }
         loadSteps.add(new LoadStep("Starting the physics engine", () -> {
             bullet = new BulletAppState(PhysicsSpace.BroadphaseType.DBVT);
             stateManager.attach(bullet);
@@ -159,58 +185,66 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
             space.setGravity(new Vector3f(0, -9.81f, 0));
             loop = FixedStepPhysics.install(space);
         }));
-        loadSteps.add(new LoadStep("Building the 2.5-mile oval", () -> {
+        loadSteps.add(new LoadStep(TrackSpline.isOval() ? "Building the 2.5-mile oval" : "Building the 4.352-mile road course", () -> {
             track = new TrackSpline();
             built = new TrackBuilder(track, assetManager).build(space);
-            rootNode.attachChild(built.node());
+            world.attachChild(built.node());
         }));
-        loadSteps.add(new LoadStep("Raising the grandstands", () ->
-                rootNode.attachChild(new Scenery(assetManager, track).build())));
+        // the road course: woods on the hills, stands at the start, the hairpin, the valley and the chicane
+        loadSteps.add(new LoadStep(TrackSpline.isOval() ? "Raising the grandstands" : "Planting the forest", () ->
+                world.attachChild(new Scenery(assetManager, track, built.terrain()).build())));
         loadSteps.add(new LoadStep("Preparing your car", () -> {
-            playerInput = new PlayerInput();
-            playerInput.register(inputManager);
-            if (movieFile == null) {                  // scripted movies are driven without a controller
-                controller = new RacingController();
-                playerInput.setController(controller);
+            if (first) {
+                playerInput = new PlayerInput();
+                playerInput.register(inputManager);
+                if (movieFile == null) {                  // scripted movies are driven without a controller
+                    controller = new RacingController();
+                    playerInput.setController(controller);
+                }
             }
             line = new RacingLine(track);
             director = new RaceDirector(track, line, playerInput);
             factory = new CarModelFactory(assetManager);
-            player = new Car("YOU", Livery.forIndex(0), true, new VehicleSpec(), factory, space,
+            player = new Car("YOU", Livery.forIndex(0), true, VehicleSpec.forTrack(), factory, space,
                     built.collider(), built.groundCollider());
-            rootNode.attachChild(player.getNode());
+            world.attachChild(player.getNode());
             loop.addListener(director);
         }));
         loadSteps.add(new LoadStep("Tuning the engines", () -> {
-            audio = new CarAudio(rootNode, cam, player);
-            tireSmoke = new com.racingsim.vehicle.TireSmoke(assetManager, rootNode);
+            audio = new CarAudio(world, cam, player);
+            tireSmoke = new com.racingsim.vehicle.TireSmoke(assetManager, world);
         }));
         loadSteps.add(new LoadStep("Setting up the timing screens", () -> {
             cameraController = new CameraController(cam);
             player.getNode().addControl(cameraController);
             director.setOnPlayerReset(cameraController::snap);
+            if (!first) return;
             float w = settings.getWidth(), h = settings.getHeight();
             hud = new Hud(assetManager, guiFont, w, h);
             menu = new MenuScreen(assetManager, guiFont, w, h);
+            if (TrackSpline.isRoadCourse()) menu.setDownforce(TrackSpline.layout().defaultDownforce());
             results = new ResultsScreen(assetManager, guiFont, w, h);
             confirm = new ConfirmDialog(assetManager, guiFont, w, h);
             confirm.getNode().setLocalTranslation(0, 0, 20f);
         }));
-        // one step per opponent of the default field (more are built on demand from the menu)
-        int defaultOpponents = 7;
+        // one step per opponent of the default field (more are built on demand from the menu); a
+        // change of track brings out the field the menu has
+        int defaultOpponents = first ? 7 : menu.opponents();
         for (int i = 0; i < defaultOpponents; i++) {
             int index = i;
             loadSteps.add(new LoadStep("Rolling out the field (" + (i + 1) + "/" + defaultOpponents + ")", () -> aiCar(index)));
         }
         loadSteps.add(new LoadStep("Lining up the grid", () -> {
-            inputManager.addMapping(MENU_LEFT, new KeyTrigger(KeyInput.KEY_LEFT), new KeyTrigger(KeyInput.KEY_A));
-            inputManager.addMapping(MENU_RIGHT, new KeyTrigger(KeyInput.KEY_RIGHT), new KeyTrigger(KeyInput.KEY_D));
-            inputManager.addMapping(MENU_UP, new KeyTrigger(KeyInput.KEY_UP), new KeyTrigger(KeyInput.KEY_W));
-            inputManager.addMapping(MENU_DOWN, new KeyTrigger(KeyInput.KEY_DOWN), new KeyTrigger(KeyInput.KEY_S));
-            inputManager.addMapping(MENU_OK, new KeyTrigger(KeyInput.KEY_SPACE));
-            inputManager.addMapping(KEY_ENTER, new KeyTrigger(KeyInput.KEY_RETURN), new KeyTrigger(KeyInput.KEY_NUMPADENTER));
-            inputManager.addMapping(KEY_ESC, new KeyTrigger(KeyInput.KEY_ESCAPE));
-            inputManager.addListener(this, MENU_LEFT, MENU_RIGHT, MENU_UP, MENU_DOWN, MENU_OK, KEY_ENTER, KEY_ESC);
+            if (first) {
+                inputManager.addMapping(MENU_LEFT, new KeyTrigger(KeyInput.KEY_LEFT), new KeyTrigger(KeyInput.KEY_A));
+                inputManager.addMapping(MENU_RIGHT, new KeyTrigger(KeyInput.KEY_RIGHT), new KeyTrigger(KeyInput.KEY_D));
+                inputManager.addMapping(MENU_UP, new KeyTrigger(KeyInput.KEY_UP), new KeyTrigger(KeyInput.KEY_W));
+                inputManager.addMapping(MENU_DOWN, new KeyTrigger(KeyInput.KEY_DOWN), new KeyTrigger(KeyInput.KEY_S));
+                inputManager.addMapping(MENU_OK, new KeyTrigger(KeyInput.KEY_SPACE));
+                inputManager.addMapping(KEY_ENTER, new KeyTrigger(KeyInput.KEY_RETURN), new KeyTrigger(KeyInput.KEY_NUMPADENTER));
+                inputManager.addMapping(KEY_ESC, new KeyTrigger(KeyInput.KEY_ESCAPE));
+                inputManager.addListener(this, MENU_LEFT, MENU_RIGHT, MENU_UP, MENU_DOWN, MENU_OK, KEY_ENTER, KEY_ESC);
+            }
             buildField();
             // paint the rest of the possible field in the background, so adding opponents in the
             // menu doesn't stall for ~1.5 s per car
@@ -246,18 +280,45 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
         enterMenu();
         setDisplayFps(movieFile == null);
         splashFade = SPLASH_FADE_TIME;
-        setupAutoShots(player);
+        if (firstLoad) setupAutoShots(player);
+        firstLoad = false;
+    }
+
+    /**
+     * The menu's TRACK row changed: a different track is a different world (its spline, meshes,
+     * colliders, racing line, the cars' gearing), so drop the world and build it again on the new
+     * track behind the splash, as the Unreal version reloads the level. The menu (with its other
+     * settings), the HUD, the sky, the input and the cars' paint are kept.
+     */
+    private void switchTrack(TrackLayout next) {
+        heldDirection = 0;
+        System.out.println("Switching track: " + next.key());
+        guiNode.detachChild(menu.getNode());
+        guiNode.detachChild(hud.getNode());
+        guiNode.detachChild(results.getNode());
+        audio.dispose();
+        tireSmoke.clear();
+        player.getNode().removeControl(cameraController);
+        rootNode.detachChild(world);
+        world = new com.jme3.scene.Node("World");
+        rootNode.attachChild(world);
+        stateManager.detach(bullet);                 // its physics space (and every body in it) goes too
+        aiPool.clear();
+        aiDrivers.clear();
+        fieldPending = false;
+        TrackSpline.selectLayout(next);
+        startLoading();
     }
     // ------------------------------------------------------------------ the field
     /** AI opponent {@code i} (0-based), created the first time it is needed and reused afterward. */
     private Car aiCar(int i) {
         while (aiPool.size() <= i) {
             Livery livery = Livery.forIndex(aiPool.size() + 1);
-            VehicleSpec spec = new VehicleSpec();
+            VehicleSpec spec = VehicleSpec.forTrack();
             Car car = new Car(livery.name(), livery, false, spec, factory, space, built.collider(), built.groundCollider());
-            float grip = 1.22f + rnd.nextFloat() * 0.10f;
+            float grip = spec.aiGripBase() + rnd.nextFloat() * 0.10f;   // planned grip
             SpeedProfile profile = new SpeedProfile(track, line, spec, car.getPhysics().getAeroModel(), grip, 13f);
-            aiDrivers.put(car, new AIDriver(car, line, profile, 0.3f + rnd.nextFloat() * 0.7f));
+            aiDrivers.put(car, new AIDriver(car, line, profile, rnd.nextFloat()));   // driver type: 0 rookie .. 1 veteran
             aiPool.add(car);
         }
         return aiPool.get(i);
@@ -286,7 +347,7 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
         for (int i = 0; i < aiPool.size(); i++) {
             Car c = aiPool.get(i);
             boolean active = i < opponents;
-            if (active && c.getNode().getParent() == null) rootNode.attachChild(c.getNode());
+            if (active && c.getNode().getParent() == null) world.attachChild(c.getNode());
             if (!active && c.getNode().getParent() != null) c.getNode().removeFromParent();
             if (c.getBody().isEnabled() != active) c.getBody().setEnabled(active);
         }
@@ -482,7 +543,7 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
 
     /** Movie mode: the AI drives the player's car. */
     private void installMovieAutopilot() {
-        SpeedProfile profile = new SpeedProfile(track, line, player.getSpec(), player.getPhysics().getAeroModel(), 1.3f, 13f);
+        SpeedProfile profile = new SpeedProfile(track, line, player.getSpec(), player.getPhysics().getAeroModel(), player.getSpec().aiGripBase() + 0.08f, 13f);
         AIDriver pilot = new AIDriver(player, line, profile, 0.6f);
         pilot.resetForRace();
         director.setPlayerOverride((car, dt) -> pilot.update(dt, director.getCars()));
@@ -510,6 +571,11 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
 
     /** Applies a menu change; field changes are shown live on the grid behind the menu. */
     private void changeSetting(int dir) {
+        if (menu.onTrackRow()) {
+            menu.change(dir);
+            switchTrack(menu.track());
+            return;
+        }
         if (!menu.change(dir)) return;
         // new opponents whose paint isn't ready yet join the grid once it is (see updatePendingField)
         if (fieldPainted()) buildField();
@@ -669,11 +735,12 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
         String camName = switch (cameraController.getMode()) {
             case CHASE -> "CHASE";
             case T_CAM -> "T-CAM";
-            case SHOWCASE -> "SHOWCASE";
+            case SHOWCASE, PROFILE -> "SHOWCASE";
         };
         hud.setController(controller != null && controller.isConnected() ? controller.getName() : null);
+        hud.setStartLights(director.startLights(), director.greenTime());
         hud.update(player, new Hud.RaceInfo(director.getLapTracker(), me, camName, showHelp, playerInput.isMouseSteering(),
-                director.pitOf(player)));
+                director.pitOf(player), this::driverTag));
 
         if (state == State.RACE && me.finished()) {
             finishedFor += tpf;
@@ -682,13 +749,24 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
         if (state == State.RESULTS) results.update(director.getLapTracker(), me);
     }
 
+    /** Standings tag of a car: its AI driver type (-1 for the human player) and wing level. */
+    private Hud.DriverTag driverTag(LapTracker.Entry e) {
+        Car c = director.carOf(e);
+        if (c == null) return null;
+        AIDriver ai = director.driverOf(c);
+        int wing = Math.round(c.getPhysics().getAeroModel().getDownforceLevel() * RaceDirector.DOWNFORCE_STEPS);
+        return new Hud.DriverTag(ai == null ? -1 : AIDriver.typeIndex(ai.getAggression()), wing);
+    }
+
     /** Slow camera sweep along the field lined up on the grid, from the infield side (menu background). */
     private void orbitGrid(float tpf) {
         orbitAngle += tpf * 0.15f;
         int cars = director.getCars().size();
         float midS = RaceDirector.gridSlot(cars / 2, cars)[0];
         float sweep = FastMath.sin(orbitAngle);
-        Vector3f eye = track.point(midS + 32f * sweep, -13f + 3f * FastMath.cos(orbitAngle * 0.7f), null).addLocal(0, 4.5f, 0);
+        // (the oval: from the infield; the road course: from the run-off on the left)
+        float eyeD = TrackSpline.isOval() ? -13f : Math.max(track.minD(midS) + 2f, -11f);
+        Vector3f eye = track.point(midS + 32f * sweep, eyeD + 3f * FastMath.cos(orbitAngle * 0.7f), null).addLocal(0, 4.5f, 0);
         Vector3f center = track.point(midS + 8f * sweep, 0.5f, null);
         cam.setLocation(eye);
         cam.lookAt(center.add(0, 0.4f, 0), Vector3f.UNIT_Y);
@@ -715,7 +793,7 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
         if (System.getenv("RACINGSIM_SHOT_MENU") != null) return;      // keep the menu on screen
         if (System.getenv("RACINGSIM_MOUSE_STEER") != null) playerInput.setMouseSteering(true);   // HUD state only
         if (System.getenv("RACINGSIM_AUTOPILOT") != null) {               // AI drives the player car
-            SpeedProfile profile = new SpeedProfile(track, line, player.getSpec(), player.getPhysics().getAeroModel(), 1.3f, 13f);
+            SpeedProfile profile = new SpeedProfile(track, line, player.getSpec(), player.getPhysics().getAeroModel(), player.getSpec().aiGripBase() + 0.08f, 13f);
             AIDriver pilot = new AIDriver(player, line, profile, 0.6f);
             pilot.resetForRace();
             director.setPlayerOverride((car, dt) -> pilot.update(dt, director.getCars()));
@@ -723,7 +801,7 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
         startRace(lapsSetting != null ? Integer.parseInt(lapsSetting) : menu.selectedLaps());
         if (System.getenv("RACINGSIM_PIT_DEMO") != null) {
             // the AI pilots the player's car down the pit lane into box 17 (pit stop screenshots)
-            SpeedProfile profile = new SpeedProfile(track, line, player.getSpec(), player.getPhysics().getAeroModel(), 1.3f, 13f);
+            SpeedProfile profile = new SpeedProfile(track, line, player.getSpec(), player.getPhysics().getAeroModel(), player.getSpec().aiGripBase() + 0.08f, 13f);
             AIDriver pilot = new AIDriver(player, line, profile, 0.6f);
             player.placeOnTrack(track, TrackSpline.wrapS(-110f), -21.9f, 15f);
             player.updateTrackPosition(track);
@@ -740,7 +818,7 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
             player.getBody().setAngularVelocity(new Vector3f(0, yaw, 0));
         }
 
-        String showcase = System.getenv("RACINGSIM_SHOT_CAM");   // e.g. "7.5,-1.2,1.0", "tcam", "sun"
+        String showcase = System.getenv("RACINGSIM_SHOT_CAM");   // e.g. "7.5,-1.2,1.0", "tcam", "sun", "profile", "helmet"
         if (showcase != null && showcase.startsWith("fly:")) {
             // fixed camera in track coordinates: fly:s,d,height,lookS,lookD,lookHeight
             String[] f = showcase.substring(4).split(",");
@@ -757,6 +835,8 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
             cam.lookAt(eye.add(environment.getSun().getDirection().negate()), Vector3f.UNIT_Y);
         } else if ("tcam".equals(showcase)) {
             cameraController.toggle();
+        } else if ("profile".equals(showcase) || "helmet".equals(showcase)) {
+            cameraController.setProfile("helmet".equals(showcase));
         } else if (showcase != null) {
             String[] p = showcase.split(",");
             cameraController.setShowcase(Float.parseFloat(p[0]), Float.parseFloat(p[1]), Float.parseFloat(p[2]));
@@ -766,8 +846,18 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
     private int perfFrames;
     private float perfTime;
 
+    private boolean shotSwitched;
+
     private void autoShots(float tpf) {
         elapsed += tpf;
+        // RACINGSIM_SHOT_SWITCH=<s>: change the track on the menu once, <s> seconds in (TRACK row)
+        String switchAt = System.getenv("RACINGSIM_SHOT_SWITCH");
+        if (switchAt != null && !shotSwitched && state == State.MENU && elapsed > Float.parseFloat(switchAt)) {
+            shotSwitched = true;
+            while (!menu.onTrackRow()) menu.moveRow(1);
+            changeSetting(1);
+            return;
+        }
         if ("race".equals(System.getenv("RACINGSIM_SHOT_CONFIRM")) && !confirmOpen && state == State.RACE && elapsed > 4f
                 && elapsed < 4.5f) {
             openConfirm();

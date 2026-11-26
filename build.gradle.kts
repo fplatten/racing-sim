@@ -60,12 +60,24 @@ tasks.withType<JavaCompile> {
     options.release.set(21)
 }
 
+// Tuning overrides, passed on to the game (run), simCheck and carCheck as system properties:
+// -PaiSling=2 -PpowerScale=1.1 ... (the AI's -Pai*= settings in ai/AIDriver.java and app/RaceDirector.java,
+// the engine's -PpowerScale= and -PfinalDrive= in vehicle/VehicleSpec.java), -Ptrack=road (the road course)
+// and -Pcar=indy|f1 (that car on either track; by default the Indy car races the oval, the Formula car the road);
+// -PplayerPaint=N gives the player's Formula car another team's paint scheme (vehicle/CarPaint)
+fun JavaExec.passTuning() {
+    project.properties.filterKeys { it.matches(Regex("ai[A-Z]\\w*|powerScale|finalDrive|track|car|carTrace|playerPaint")) }
+        .forEach { (k, v) -> systemProperty(k, v.toString()) }
+}
+tasks.named<JavaExec>("run") { passTuning() }
+
 // Headless physics/AI/drafting run (no window): ./gradlew simCheck -Pseconds=150 -Pplayer=passive|erratic|ai
 tasks.register<JavaExec>("simCheck") {
     group = "verification"
     description = "Runs the race simulation headless and prints telemetry."
     classpath = sourceSets["test"].runtimeClasspath
     mainClass.set("com.racingsim.HeadlessSimCheck")
+    passTuning()
     args(
         project.findProperty("seconds")?.toString() ?: "150",
         project.findProperty("verbose")?.toString() ?: "-",
@@ -84,6 +96,16 @@ tasks.register<JavaExec>("audioDump") {
     classpath = sourceSets["test"].runtimeClasspath
     mainClass.set("com.racingsim.AudioDump")
     args(project.findProperty("out")?.toString() ?: "build/audio")
+}
+
+// Launch, braking and top speed of one car on the oval's front straight, at minimum and maximum
+// wing: ./gradlew carCheck [-Pcar=indy|f1] (the Indy car unless -Pcar= says otherwise)
+tasks.register<JavaExec>("carCheck") {
+    group = "verification"
+    description = "Measures 0-60 / 0-100 mph, the stop from 200 mph and the top speed of a car."
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.racingsim.CarCheck")
+    passTuning()
 }
 
 // Fires a car into the outer wall at several speeds / angles / yaws: ./gradlew wallCheck

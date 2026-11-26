@@ -19,7 +19,7 @@ import com.jme3.scene.control.AbstractControl;
  */
 public final class CameraController extends AbstractControl {
 
-    public enum Mode { CHASE, T_CAM, SHOWCASE }
+    public enum Mode { CHASE, T_CAM, SHOWCASE, PROFILE }
 
     private final Camera cam;
     private Mode mode = Mode.CHASE;
@@ -48,6 +48,18 @@ public final class CameraController extends AbstractControl {
         showcaseHeight = height;
         mode = Mode.SHOWCASE;
         cam.setFrustumPerspective(50f, (float) cam.getWidth() / cam.getHeight(), 0.3f, 4000f);
+    }
+
+    private boolean profileHelmet;
+
+    /**
+     * Screenshot helper, the paint close up: the car from the left, a little ahead and above, or
+     * ({@code helmet}) the driver's helmet. (The Unreal version's -ShotCam=profile|helmet.)
+     */
+    public void setProfile(boolean helmet) {
+        profileHelmet = helmet;
+        mode = Mode.PROFILE;
+        cam.setFrustumPerspective(50f, (float) cam.getWidth() / cam.getHeight(), 0.1f, 4000f);
     }
 
     public void toggle() {
@@ -80,6 +92,14 @@ public final class CameraController extends AbstractControl {
             Vector3f camPos = carPos.add(flatFwd.mult(showcaseDistance)).addLocal(right.mult(showcaseSide)).addLocal(0, showcaseHeight, 0);
             cam.setLocation(camPos);
             cam.lookAt(carPos.add(flatFwd.mult(-2.5f)).addLocal(0, 0.35f, 0), Vector3f.UNIT_Y);
+        } else if (mode == Mode.PROFILE) {
+            Vector3f right = flatFwd.cross(Vector3f.UNIT_Y);
+            Vector3f camPos = profileHelmet
+                    ? carPos.add(flatFwd.mult(1.1f)).addLocal(right.mult(-0.7f)).addLocal(0, 0.75f, 0)
+                    : carPos.add(flatFwd.mult(1.2f)).addLocal(right.mult(-3.8f)).addLocal(0, 1.6f, 0);
+            Vector3f lookAt = profileHelmet ? carPos.add(flatFwd.mult(0.3f)).addLocal(0, 0.5f, 0) : carPos.add(0, 0.2f, 0);
+            cam.setLocation(camPos);
+            cam.lookAt(lookAt, Vector3f.UNIT_Y);
         } else if (mode == Mode.CHASE) {
             Vector3f desired = flatFwd.mult(-8.5f).addLocal(0, 2.6f, 0);
             float a = snap ? 1f : 1f - FastMath.exp(-tpf * 7f);

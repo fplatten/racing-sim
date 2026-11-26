@@ -48,7 +48,9 @@ public final class Car implements DraftingSystem.Participant {
         node.attachChild(model.root());
 
         CompoundCollisionShape shape = new CompoundCollisionShape();
-        shape.addChildShape(new BoxCollisionShape(1.0f, 0.25f, 2.5f), new Vector3f(0, 0.12f, -0.03f));
+        // a 2.0 x 0.5 m box, the car's length (5.0 m for the Indy car, 4.42 m for the Formula car);
+        // Bullet derives the body's inertia from it
+        shape.addChildShape(new BoxCollisionShape(1.0f, 0.25f, spec.bodyLength / 2f), new Vector3f(0, 0.12f, spec.bodyCenterAhead));
         body = new RigidBodyControl(shape, spec.mass);
         node.addControl(body);
         body.setFriction(0.35f);
@@ -100,7 +102,9 @@ public final class Car implements DraftingSystem.Participant {
     /** Teleports the car onto the track at (s, d) moving forward at {@code speed}. */
     public void placeOnTrack(TrackSpline track, float s, float d, float speed) {
         Vector3f normal = track.surfaceNormal(s, d, null);
+        // along the road, up or down its slope (the road course's hills)
         Vector3f fwd = track.forward(s, null);
+        if (TrackSpline.isRoadCourse()) fwd.subtractLocal(normal.mult(fwd.dot(normal))).normalizeLocal();
         Vector3f p = track.point(s, d, null).addLocal(normal.mult(rideHeight + 0.03f));
         Quaternion q = new Quaternion();
         q.lookAt(fwd, normal);

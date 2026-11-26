@@ -37,8 +37,7 @@ public final class GroundShade {
     /** Ground color multiplier at world (x, z). */
     public ColorRGBA color(float x, float z) {
         tmp.set(x, 0, z);
-        track.project(tmp, tp);
-        float d = tp.d;
+        float d = offsetAt(x, z);
         float macro = fbm(x / 210f, z / 210f, 3, 11);
         float mid = fbm(x / 38f, z / 38f, 2, 23);
         float fine = noise(x / 9f, z / 9f, 37);
@@ -83,7 +82,9 @@ public final class GroundShade {
     /** Track offset of a world position (convenience for callers without a TrackPos). */
     public float offsetAt(float x, float z) {
         tmp.set(x, 0, z);
-        return track.project(tmp, tp).d;
+        float d = track.project(tmp, tp).d;
+        // the road course has no infield: the distance either side of the track
+        return TrackSpline.isOval() ? d : Math.abs(d);
     }
 
     // ------------------------------------------------------------------ value noise

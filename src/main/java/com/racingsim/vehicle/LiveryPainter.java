@@ -224,7 +224,8 @@ public final class LiveryPainter {
         return SPONSORS[Math.floorMod(fieldIndex(livery) * 5 + spot, n)];
     }
 
-    private static int fieldIndex(Livery livery) {
+    /** The car's place in the field: the {@link Livery#forIndex} index of this livery. */
+    static int fieldIndex(Livery livery) {
         for (int i = 0; i < Livery.MAX_CARS; i++) {
             if (Livery.forIndex(i).number() == livery.number()) return i;
         }
