@@ -69,7 +69,7 @@ public final class MenuScreen {
         rect(px, py, pw, ph, PANEL, 0);
         rect(px, py + ph - 6, pw, 6, ACCENT, 0.1f);
 
-        centered("OVAL RACING SIM", base * 3.2f, ColorRGBA.White, width / 2, py + ph - 30);
+        centered("RACING SIM", base * 3.2f, ColorRGBA.White, width / 2, py + ph - 30);
         subtitle = centered("", base, DIM, width / 2, py + ph - 110);
         centered("RACE SETUP", base * 1.2f, GOLD, width / 2, py + ph - 160);
 

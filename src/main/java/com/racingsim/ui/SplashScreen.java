@@ -54,7 +54,7 @@ public final class SplashScreen {
         rect(0, 0, width, 230, new ColorRGBA(0f, 0f, 0f, 0.72f), 0.2f, null);
         rect(0, height * 0.58f, width, 200, new ColorRGBA(0f, 0f, 0f, 0.35f), 0.2f, null);
 
-        centered(font, "OVAL RACING SIM", base * 4.4f, ColorRGBA.White, height * 0.58f + 160);
+        centered(font, "RACING SIM", base * 4.4f, ColorRGBA.White, height * 0.58f + 160);
         // (names the track being built: the one TrackSpline.selectLayout chose)
         centered(font, com.racingsim.track.TrackSpline.isOval() ? "2.5-MILE OVAL   -   OPEN-WHEEL RACING   -   33-CAR FIELD"
                         : "4.352-MILE ROAD COURSE   -   OPEN-WHEEL RACING   -   STANDING START", base * 1.1f,

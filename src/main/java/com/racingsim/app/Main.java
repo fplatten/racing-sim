@@ -13,7 +13,7 @@ public final class Main {
         nativeImageJavaHome();
         RaceApp app = new RaceApp();
         AppSettings settings = new AppSettings(true);
-        settings.setTitle("Oval Racing Sim POC - jMonkeyEngine");
+        settings.setTitle("Racing Sim POC - jMonkeyEngine");
         settings.setResolution(1600, 900);
         settings.setSamples(0);          // anti-aliasing is done by FXAA in the post stack
         settings.setGammaCorrection(true);
