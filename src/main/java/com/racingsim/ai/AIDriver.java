@@ -109,37 +109,37 @@ public final class AIDriver {
     /** Integral gain of the curvature-tracking steering loop (rad per (1/m) per s). */
     private static final float CURVATURE_GAIN = 18f;
     /** Lane-keeping terms: rad per meter of lateral error, rad per m/s of lateral velocity. */
-    private static final float LATERAL_GAIN = tuning("aiLatGain", 0.0025f), LATERAL_DAMPING = tuning("aiLatDamp", 0.006f);
+    private final float LATERAL_GAIN = tuning("aiLatGain", 0.0025f), LATERAL_DAMPING = tuning("aiLatDamp", 0.006f);
     /** Steering look-ahead: base (m) + per m/s of speed (short, to follow the line closely). */
-    private static final float LOOK_BASE = tuning("aiLookBase", 8f), LOOK_PER_SPEED = tuning("aiLookK", 0.40f);
+    private final float LOOK_BASE = tuning("aiLookBase", 8f), LOOK_PER_SPEED = tuning("aiLookK", 0.40f);
     /** Closing speed (m/s) the tow must have built before pulling out to pass. */
-    private static final float SLINGSHOT_CLOSING = tuning("aiSling", 2.5f);
+    private final float SLINGSHOT_CLOSING = tuning("aiSling", 2.5f);
     /** A pass not yet alongside is given up after 1.5 s gaining less than this (m/s): only when
      *  it is losing ground; a slow pass may run on down the straight. */
-    private static final float STALL_GAIN = tuning("aiStallGain", 0f);
+    private final float STALL_GAIN = tuning("aiStallGain", 0f);
     /** Pull-out distance behind the car being passed: base + 8 m x aggression. */
-    private static final float PULL_OUT_BASE = tuning("aiPullOut", 12f);
+    private final float PULL_OUT_BASE = tuning("aiPullOut", 12f);
     /** Following distance (m) on a draft run, closing up to slingshot past (+2 m behind the human). */
-    private static final float DRAFT_RUN_GAP = tuning("aiRunGap", 7f);
+    private final float DRAFT_RUN_GAP = tuning("aiRunGap", 7f);
     /** Following distance (m) through the turns while setting up a run, less 4 m x aggression; at or
      *  under the usual following distance it does nothing. Off: hanging back cost the whole train
      *  its exit speed and let the leader escape. */
-    private static final float SETUP_GAP = tuning("aiSetupGap", 0f);
+    private final float SETUP_GAP = tuning("aiSetupGap", 0f);
     /** Braking (m/s^2) planned behind the car we are running up on / passing (the brakes manage ~13). */
-    private static final float RUN_DECEL = tuning("aiRunDecel", 6f), PASS_DECEL = 8f;
+    private final float RUN_DECEL = tuning("aiRunDecel", 6f), PASS_DECEL = 8f;
     /** On a run, pull out once within DRAFT_RUN_GAP + this (m) with any closing speed. */
-    private static final float RUN_PULL_OUT = tuning("aiRunPull", 1.5f);
+    private final float RUN_PULL_OUT = tuning("aiRunPull", 1.5f);
     /** Closing speed (m/s) assumed for a pass from the tow when judging if it fits before the turn. */
-    private static final float ROOM_CLOSING = tuning("aiRoomClose", 3f);
+    private final float ROOM_CLOSING = tuning("aiRoomClose", 3f);
     /** Corner speed given up per unit of draft factor (dirty air). */
-    private static final float DIRTY_AIR_SLOWDOWN = tuning("aiDirtyAir", 0.08f);
+    private final float DIRTY_AIR_SLOWDOWN = tuning("aiDirtyAir", 0.08f);
     /** Road course, a pass down the inside on the brakes: the share of the grip the late braking
      *  plans on (the usual braking points plan on 0.82, {@code -DaiBrakeGrip=}), and how far behind
      *  (m, centre to centre) the passer may be as the braking zone arrives and still go for it:
      *  + 6 m x aggression (the usual following distance is 9-12 m). Tuning: {@code -DaiLateBrake=},
      *  {@code -DaiOutbrake=}; {@code -DaiPassLog=true} logs every pass as it starts and ends. */
-    private static final float LATE_BRAKE_GRIP = tuning("aiLateBrake", 0.95f);
-    private static final float OUTBRAKE_DS = tuning("aiOutbrake", 8f);
+    private final float LATE_BRAKE_GRIP = tuning("aiLateBrake", 0.95f);
+    private final float OUTBRAKE_DS = tuning("aiOutbrake", 8f);
     private static final boolean PASS_LOG = Boolean.parseBoolean(System.getProperty("aiPassLog", "false"))
             || "".equals(System.getProperty("aiPassLog"));
     private final Quaternion rot = new Quaternion();
@@ -265,7 +265,7 @@ public final class AIDriver {
     }
 
     private static float tuning(String name, float def) {
-        return com.racingsim.vehicle.VehicleSpec.tuning(name, def);
+        return AiParams.get(name, def);
     }
 
     /**

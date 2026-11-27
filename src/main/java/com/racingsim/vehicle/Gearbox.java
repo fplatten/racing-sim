@@ -45,6 +45,12 @@ public final class Gearbox {
         gear = topGear();
     }
 
+    /** After a teleport: the gear for this speed, no shift in progress. */
+    public void reset(float speed) {
+        selectForSpeed(speed);
+        shiftTimer = shiftCooldown = reverseHold = 0f;
+    }
+
     private float rpmAt(float speed, int g) {
         float wheelOmega = speed / spec.wheelRadius;
         return wheelOmega * spec.gearRatios[g - 1] * spec.finalDrive * 60f / (2f * (float) Math.PI);

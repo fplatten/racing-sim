@@ -18,7 +18,7 @@ public final class SpeedProfile {
     private static final float MAX_SPEED = 150f;
     /** Road course braking: how much of the grip the AI plans to use (tuning: {@code -DaiBrakeGrip=});
      *  the brakes' own limit is {@link VehicleSpec#maxBrakeDecel}. */
-    private static final float BRAKE_CONFIDENCE = VehicleSpec.tuning("aiBrakeGrip", 0.82f);
+    private static float brakeConfidence() { return AiParams.get("aiBrakeGrip", 0.82f); }
     /** Road course lanes at d = -5, -2.5, 0, 2.5, 5. */
     private static final int NUM_LANES = 5;
     private static final float LANE_SPACING = 2.5f;
@@ -36,7 +36,7 @@ public final class SpeedProfile {
      */
     public SpeedProfile(TrackSpline track, RacingLine line, VehicleSpec spec, AeroModel aero,
                         float gripFactor, float brakingDecel) {
-        this(track, line, spec, aero, gripFactor, brakingDecel, BRAKE_CONFIDENCE);
+        this(track, line, spec, aero, gripFactor, brakingDecel, brakeConfidence());
     }
 
     /**

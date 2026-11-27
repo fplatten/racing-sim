@@ -66,7 +66,7 @@ tasks.withType<JavaCompile> {
 // and -Pcar=indy|f1 (that car on either track; by default the Indy car races the oval, the Formula car the road);
 // -PplayerPaint=N gives the player's Formula car another team's paint scheme (vehicle/CarPaint)
 fun JavaExec.passTuning() {
-    project.properties.filterKeys { it.matches(Regex("ai[A-Z]\\w*|powerScale|finalDrive|track|car|carTrace|playerPaint")) }
+    project.properties.filterKeys { it.matches(Regex("ai[A-Z]\\w*|powerScale|finalDrive|track|car|carTrace|playerPaint|seed|results|bots|botHz")) }
         .forEach { (k, v) -> systemProperty(k, v.toString()) }
 }
 tasks.named<JavaExec>("run") { passTuning() }
@@ -114,4 +114,34 @@ tasks.register<JavaExec>("wallCheck") {
     description = "Measures how far wall impacts throw a car."
     classpath = sourceSets["test"].runtimeClasspath
     mainClass.set("com.racingsim.WallHitCheck")
+}
+
+// For tools/train/tune_ai.py: compiles the headless race (HeadlessSimCheck) and writes a java
+// argument file (build/eval.args: -cp ...), so the trainer can start many races with plain
+// `java @build/eval.args -DaiParams=<file> com.racingsim.HeadlessSimCheck ...` (no Gradle start-up each time)
+tasks.register("evalArgs") {
+    group = "verification"
+    description = "Writes build/eval.args for running headless races without Gradle."
+    dependsOn("testClasses")
+    val cp = sourceSets["test"].runtimeClasspath
+    val out = layout.buildDirectory.file("eval.args")
+    doLast {
+        val f = out.get().asFile
+        f.parentFile.mkdirs()
+        f.writeText("-cp \"" + cp.files.joinToString(File.pathSeparator) { it.absolutePath.replace("\\", "/") } + "\"\n")
+    }
+}
+
+// A headless race for external bots (bots/PROTOCOL.md): ./gradlew botRace -Ptrack=road -Plaps=3
+// -Popponents=7 -PbotCount=1 [-Plockstep=false] [-Pstart=<grid slot>] [-Pseed=] [-Presults=out.json];
+// start the bot(s) after "Waiting for ... bot(s)"
+tasks.register<JavaExec>("botRace") {
+    group = "application"
+    description = "Races external bots against the built-in AI without a window."
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.racingsim.bot.BotRace")
+    jvmArgs("-Xmx2g")
+    passTuning()
+    project.properties.filterKeys { it.matches(Regex("laps|opponents|botCount|port|lockstep|botHz|seconds|start|waitMs|stopWhenBotsFinish")) }
+        .forEach { (k, v) -> systemProperty(k, v.toString()) }
 }

@@ -160,7 +160,7 @@ public final class VehicleSpec {
     /** The lowest grip (friction the speed profile plans with) an AI driver of this car assumes:
      *  the Indy car's tires give 1.55, the Formula car's 1.9. */
     public float aiGripBase() {
-        return type == CarType.FORMULA ? 1.50f : 1.22f;
+        return com.racingsim.ai.AiParams.get("aiGrip", type == CarType.FORMULA ? 1.50f : 1.22f);
     }
 
     /** Tuning: {@code -DpowerScale=<x>} multiplies the engine torque curve of every car. */

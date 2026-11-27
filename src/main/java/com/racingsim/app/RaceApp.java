@@ -151,7 +151,102 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
         // the track: -Dtrack=road (or ./gradlew run -Ptrack=road) races on the road course
         TrackSpline.selectLayout(TrackLayout.fromSystemProperty());
         rootNode.attachChild(world);
+        int botPort = com.racingsim.bot.BotServer.configuredPort();
+        if (botPort > 0) {
+            try {
+                botServer = new com.racingsim.bot.BotServer(botPort);
+            } catch (java.io.IOException e) {
+                System.err.println("Bot server: cannot listen on port " + botPort + ": " + e.getMessage());
+            }
+        }
         startLoading();
+    }
+
+    // ------------------------------------------------------------------ bots (bots/PROTOCOL.md)
+    private com.racingsim.bot.BotServer botServer;
+    private com.jme3.scene.Geometry botDebug;
+
+    /**
+     * Hands the race's cars to the connected bots: with {@code -DbotPlayer=true} (or
+     * RACINGSIM_BOT_PLAYER) the first bot drives your car; the others take AI cars from the back
+     * of the grid forwards. A bot that goes quiet gives its car back (to the AI, or to you).
+     */
+    private void attachBots() {
+        if (botServer == null) return;
+        List<com.racingsim.bot.BotConnection> ready = botServer.ready();
+        if (ready.isEmpty()) return;
+        boolean botPlayer = Boolean.getBoolean("botPlayer") || System.getenv("RACINGSIM_BOT_PLAYER") != null;
+        List<Car> targets = new ArrayList<>();
+        if (botPlayer) targets.add(director.getPlayer());
+        List<Car> field = director.getCars();
+        for (int i = field.size() - 1; i >= 0; i--) if (!field.get(i).isPlayer()) targets.add(field.get(i));
+        int hz = Integer.getInteger("botHz", 30);
+        for (int k = 0; k < Math.min(ready.size(), targets.size()); k++) {
+            Car c = targets.get(k);
+            com.racingsim.bot.BotConnection bc = ready.get(k);
+            com.racingsim.bot.ExternalDriver d = new com.racingsim.bot.ExternalDriver(bc, c, hz, false);
+            director.attachBot(c, d);
+            director.entryOf(c).name = bc.name();
+            d.welcome(director.carId(c), "race", track);
+            System.out.println("Bot " + bc.name() + " drives " + (c.isPlayer() ? "your car" : c.getName()));
+        }
+    }
+
+    /** The bots' debug lines ({@code control.debug.lines}), drawn over the track. */
+    private void drawBotDebug() {
+        List<Float> pts = new ArrayList<>();
+        List<Float> cols = new ArrayList<>();
+        Vector3f p = new Vector3f();
+        for (com.racingsim.bot.ExternalDriver d : director.getBots().values()) {
+            List<Object> lines = d.debugLines();
+            if (lines == null || d.isLost()) continue;
+            int n = 0;
+            for (Object o : lines) {
+                if (!(o instanceof List<?> l) || l.size() < 4 || n++ >= 64) continue;
+                float[] v = new float[4];
+                boolean ok = true;
+                for (int k = 0; k < 4; k++) {
+                    if (l.get(k) instanceof Double x && Double.isFinite(x)) v[k] = x.floatValue();
+                    else ok = false;
+                }
+                if (!ok) continue;
+                ColorRGBA c = ColorRGBA.Green;
+                if (l.size() > 4 && l.get(4) instanceof String hex && hex.matches("#[0-9a-fA-F]{6}")) {
+                    int rgb = Integer.parseInt(hex.substring(1), 16);
+                    c = new ColorRGBA(((rgb >> 16) & 255) / 255f, ((rgb >> 8) & 255) / 255f, (rgb & 255) / 255f, 1f);
+                }
+                for (int e = 0; e < 2; e++) {
+                    track.point(v[2 * e], Math.clamp(v[2 * e + 1], -60f, 60f), p);
+                    pts.add(p.x); pts.add(p.y + 0.4f); pts.add(p.z);
+                    cols.add(c.r); cols.add(c.g); cols.add(c.b); cols.add(1f);
+                }
+            }
+        }
+        if (pts.isEmpty()) {
+            if (botDebug != null) botDebug.setCullHint(com.jme3.scene.Spatial.CullHint.Always);
+            return;
+        }
+        float[] pa = new float[pts.size()], ca = new float[cols.size()];
+        for (int k = 0; k < pa.length; k++) pa[k] = pts.get(k);
+        for (int k = 0; k < ca.length; k++) ca[k] = cols.get(k);
+        com.jme3.scene.Mesh m = new com.jme3.scene.Mesh();
+        m.setMode(com.jme3.scene.Mesh.Mode.Lines);
+        m.setBuffer(com.jme3.scene.VertexBuffer.Type.Position, 3, pa);
+        m.setBuffer(com.jme3.scene.VertexBuffer.Type.Color, 4, ca);
+        m.updateBound();
+        if (botDebug == null) {
+            botDebug = new com.jme3.scene.Geometry("BotDebug", m);
+            com.jme3.material.Material mat = new com.jme3.material.Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+            mat.setBoolean("VertexColor", true);
+            mat.getAdditionalRenderState().setDepthTest(false);
+            mat.getAdditionalRenderState().setLineWidth(3f);
+            botDebug.setMaterial(mat);
+            botDebug.setQueueBucket(com.jme3.renderer.queue.RenderQueue.Bucket.Transparent);
+            rootNode.attachChild(botDebug);
+        } else {
+            botDebug.setMesh(m);
+        }
+        botDebug.setCullHint(com.jme3.scene.Spatial.CullHint.Inherit);
     }
 
     /** Shows a fresh splash (it names the track) and plans the loading steps. */
@@ -316,7 +411,7 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
             Livery livery = Livery.forIndex(aiPool.size() + 1);
             VehicleSpec spec = VehicleSpec.forTrack();
             Car car = new Car(livery.name(), livery, false, spec, factory, space, built.collider(), built.groundCollider());
-            float grip = spec.aiGripBase() + rnd.nextFloat() * 0.10f;   // planned grip
+            float grip = spec.aiGripBase() + rnd.nextFloat() * com.racingsim.ai.AiParams.get("aiGripSpread", 0.10f);   // planned grip
             SpeedProfile profile = new SpeedProfile(track, line, spec, car.getPhysics().getAeroModel(), grip, 13f);
             aiDrivers.put(car, new AIDriver(car, line, profile, rnd.nextFloat()));   // driver type: 0 rookie .. 1 veteran
             aiPool.add(car);
@@ -564,6 +659,7 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
         guiNode.attachChild(hud.getNode());
         player.getPhysics().getAeroModel().setDownforceLevel(menu.downforceLevel());
         director.startRace(laps, menu.pitStops());
+        attachBots();
         tireSmoke.clear();
         if (movieFile != null) installMovieAutopilot();
         bullet.setEnabled(true);
@@ -711,6 +807,14 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
             if (splashFade <= 0f) guiNode.detachChild(splash.getNode());
         }
         if (autoShotDir != null) autoShots(tpf);
+        if (botServer != null) {
+            List<com.racingsim.bot.BotConnection> ready = botServer.ready();
+            StringBuilder names = new StringBuilder();
+            for (com.racingsim.bot.BotConnection b : ready) names.append(names.length() > 0 ? ", " : "").append(b.name());
+            menu.setBotStatus(ready.isEmpty() ? "Bot server on port " + botServer.port() + ": no bots connected"
+                    : "BOTS: " + names + " (they take AI cars from the back)");
+            if (state == State.RACE) drawBotDebug();
+        }
         Car player = director.getPlayer();
         if (controller != null) controller.poll(tpf, this::onControllerButton);
         // consume keyboard one-shots in every state so they never fire late

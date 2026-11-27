@@ -164,7 +164,8 @@ public final class VehiclePhysics {
             w.suspensionLength = spec.restLength - staticComp;
             w.slipAngle = w.slipRatio = 0f;
         }
-        gearbox.selectForSpeed(newSpeed);
+        gearbox.reset(newSpeed);
+        engineRpm = Math.max(spec.idleRpm, newSpeed / spec.wheelRadius * gearbox.totalRatio() * 60f / FastMath.TWO_PI);
         hasPrevVel = false;
         hasPost = false;
         lateralG = longitudinalG = 0f;

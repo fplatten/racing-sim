@@ -65,10 +65,12 @@ public final class HeadlessSimCheck {
         RacingLine line = new RacingLine(track);
         RaceDirector director = new RaceDirector(track, line, new PlayerInput());
         CarModelFactory factory = new CarModelFactory(assets);
-        Random rnd = new Random(42);
+        // -Pseed=N: another mix of drivers (grip, type) on the same grid; -Presults=<file.json>
+        // writes the outcome as JSON for the trainer (tools/train/tune_ai.py)
+        Random rnd = new Random(Long.getLong("seed", 42L));
         AIDriver.stats = new AIDriver.Stats();
         // tuning: -PaiGrip=<lowest planned grip> -PaiGripSpread=<range above it>
-        float gripBase = VehicleSpec.tuning("aiGrip", VehicleSpec.forTrack().aiGripBase()), gripSpread = VehicleSpec.tuning("aiGripSpread", 0.10f);
+        float gripBase = VehicleSpec.forTrack().aiGripBase(), gripSpread = com.racingsim.ai.AiParams.get("aiGripSpread", 0.10f);
 
         int playerSlot = Math.min(5, carCount - 1);
         boolean humanPlayer = !playerMode.equals("ai");
@@ -275,6 +277,8 @@ public final class HeadlessSimCheck {
                     }
                 }
             }
+            // with -Presults=: stop once the whole field has finished (the trainer's races)
+            if (System.getProperty("results") != null && laps3.raceTime() > 0f && st.stream().allMatch(LapTracker.Entry::finished)) break;
             VehiclePhysics p = player.getPhysics();
             maxSpeed = Math.max(maxSpeed, p.getSpeed());
             maxSqueal = Math.max(maxSqueal, p.getSqueal());
@@ -369,5 +373,39 @@ public final class HeadlessSimCheck {
             if (a.trackErrCount[i] > 0) err.append(String.format(" %d:%+.1f", i * 50, a.trackErrSum[i] / a.trackErrCount[i]));
         }
         System.out.println("AI line error by s:" + err);
+
+        String results = System.getProperty("results");
+        if (results != null && !results.isBlank()) {
+            StringBuilder j = new StringBuilder("{");
+            j.append(String.format(java.util.Locale.ROOT,
+                    "\"track\":\"%s\",\"cars\":%d,\"laps\":%d,\"seconds\":%.1f,\"raceTime\":%.2f,\"contacts\":%d,\"playerContacts\":%d,"
+                    + "\"recoveries\":%d,\"passStarts\":%d,\"passesDone\":%d,\"passesAborted\":%d,\"abortStall\":%d,\"abortLate\":%d,"
+                    + "\"abortYield\":%d,\"abortBlocked\":%d,\"outbrakeStarts\":%d,\"outbrakesDone\":%d,\"emergencyMoves\":%d,"
+                    + "\"offLinePct\":%.3f,\"threeWidePct\":%.3f,\"fastestLap\":%s,\"avgBestLap\":%s,\"cleanAirTopMph\":%.1f,\"order\":[",
+                    TrackSpline.layout().key(), carCount, laps, seconds, director.getLapTracker().raceTime(), anyContacts[0],
+                    playerContacts[0], director.getRecoveries(), a.passStarts, a.passesDone, a.passesAborted, a.abortStall,
+                    a.abortLate, a.abortYield, a.abortBlocked, a.outbrakeStarts, a.outbrakesDone, a.emergencyMoves,
+                    100.0 * a.offLineTicks / ticks, 100.0 * a.threeWideTicks / ticks,
+                    bestCount > 0 ? String.format(java.util.Locale.ROOT, "%.3f", fastest) : "null",
+                    bestCount > 0 ? String.format(java.util.Locale.ROOT, "%.3f", bestSum / bestCount) : "null",
+                    a.cleanAirTop * 2.23694f));
+            boolean first = true;
+            for (LapTracker.Entry e : director.getLapTracker().getOrder()) {
+                if (!first) j.append(',');
+                first = false;
+                j.append(String.format(java.util.Locale.ROOT,
+                        "{\"name\":\"%s\",\"laps\":%d,\"finished\":%b,\"finishTime\":%s,\"best\":%s,\"distance\":%.1f}",
+                        e.name, e.lapsCompleted(), e.finished(),
+                        e.finished() ? String.format(java.util.Locale.ROOT, "%.3f", e.finishTime()) : "null",
+                        Float.isNaN(e.bestLapTime()) ? "null" : String.format(java.util.Locale.ROOT, "%.3f", e.bestLapTime()),
+                        e.totalDistance()));
+            }
+            j.append("]}");
+            try {
+                java.nio.file.Files.writeString(java.nio.file.Path.of(results), j.toString());
+            } catch (java.io.IOException ex) {
+                System.err.println("cannot write " + results + ": " + ex.getMessage());
+            }
+        }
     }
 }

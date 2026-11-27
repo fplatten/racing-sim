@@ -229,6 +229,27 @@ The car body is a rigid box, and on its own a rigid box hitting a triangle-mesh 
 
 A car that still gets over a wall lands and rolls on solid ground. If you're stuck outside the retaining walls for 3 s, upside down for 2 s, or (as a last resort) below the world, the car is put back on the track where it left it.
 
+## Bots and AI training
+
+**Bots: your own AI drivers.** Players can write their own drivers in Python, Java, C# or Lua, or anything else that can open a socket, and race them against the built-in AI.
+
+- Each bot is a separate program that talks to the game over a local socket. The protocol is [bots/PROTOCOL.md](bots/PROTOCOL.md), and it is shared with the Unreal version.
+- [bots/README.md](bots/README.md) has the SDKs, the baseline bot and a quick start.
+- Headless: `./gradlew botRace -Ptrack=road -Plaps=3 -Popponents=7` waits for a bot and races it.
+- In the game: `./gradlew run -Pbots=4510` (or `RACINGSIM_BOTS=4510`). Connected bots take AI cars, and with `RACINGSIM_BOT_PLAYER=1` one drives your car.
+
+**AI parameters.** The built-in AI's tuning lives in `src/main/resources/AI/<track>.properties` (`ai/AiParams.java`).
+
+- `-PaiSling=2`-style properties override one value; `-PaiParams=<file>` loads a whole set.
+- `simCheck` takes `-Pseed=N` (another mix of drivers) and `-Presults=out.json` (the outcome as JSON).
+
+**Training** ([tools/train/](tools/train/)):
+
+- `tune_ai.py` tunes those parameters with a separable CMA-ES over batches of headless 14-car races. It uses only the standard library: run `./gradlew evalArgs` once, then `python tools/train/tune_ai.py --track road`.
+- The cost it minimizes is the field's average best lap, plus penalties for contacts, crashes, abandoned passes and emergency swerves, less a reward for completed passes.
+- `racingsim_env.py` is a reinforcement-learning environment over the bot protocol. It runs in lockstep and is deterministic, and the agent can restart its car anywhere on the lap.
+- `train_ppo.py` trains a neural driver with PPO on several races at once. It needs `gymnasium`, `stable-baselines3` and `torch`.
+
 ## AI race craft
 The AI races oval style:
 - **Single file on the racing line.** Passes come from the tow: on a straight a car closes right up in the draft of the car ahead (a "run"), pulls out late with the speed it built and slingshots by. A car that is simply faster may go by without a tow.

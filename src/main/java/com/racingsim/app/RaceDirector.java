@@ -71,6 +71,11 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
     private volatile boolean running;
     /** Standing start: time since the field lined up (-1: the lights are out), and since they went out. */
     private volatile float lightsTime = -1f, greenTime = -1f;
+    /** Cars driven by external bots (bots/PROTOCOL.md); a lost bot's car goes back to its AI driver. */
+    private final Map<Car, com.racingsim.bot.ExternalDriver> bots = new HashMap<>();
+    private final java.util.Set<Car> botsHandedBack = new java.util.HashSet<>();
+    private final Map<Car, Integer> botLaps = new HashMap<>();
+    private final Map<Car, Float> botStuckTime = new HashMap<>();
     /** Optional replacement for the keyboard (headless tests drive the player car with it). */
     private java.util.function.BiConsumer<Car, Float> playerOverride;
 
@@ -144,6 +149,44 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
     public void setPlayerOverride(java.util.function.BiConsumer<Car, Float> override) { playerOverride = override; }
 
     /**
+     * Hands {@code car} to an external bot for the race about to start (call after {@link #setField}
+     * and before {@link #startRace}); {@code mode} is told to the bot (race, practice, training).
+     */
+    public void attachBot(Car car, com.racingsim.bot.ExternalDriver bot) {
+        bots.put(car, bot);
+    }
+
+    /** The bots in this race (car to driver). */
+    public Map<Car, com.racingsim.bot.ExternalDriver> getBots() { return bots; }
+
+    /** The car's number in the bot protocol (1-based, grid order). */
+    public int carId(Car c) { return cars.indexOf(c) + 1; }
+
+    private com.racingsim.bot.BotSensors.Phase phaseOf(Car c) {
+        if (lightsTime >= 0f) return com.racingsim.bot.BotSensors.Phase.LIGHTS;
+        if (!running) return com.racingsim.bot.BotSensors.Phase.GRID;
+        return entries.get(c).finished() ? com.racingsim.bot.BotSensors.Phase.FINISHED : com.racingsim.bot.BotSensors.Phase.GREEN;
+    }
+
+    private void updateBot(com.racingsim.bot.ExternalDriver bot, float dt, boolean drive) {
+        Car c = bot.car();
+        bot.update(dt, track, cars, lapTracker, entries.get(c), phaseOf(c), Math.max(0, startLights()), this::carId, drive);
+    }
+
+    /** False if the car's bot drives it this step (else its AI driver / the player input does). */
+    private boolean botDrives(Car c, float dt) {
+        com.racingsim.bot.ExternalDriver bot = bots.get(c);
+        if (bot == null) return false;
+        updateBot(bot, dt, true);
+        if (!bot.isLost()) return true;
+        if (botsHandedBack.add(c)) {
+            AIDriver ai = driverOf.get(c);
+            if (ai != null) ai.resetLane();
+        }
+        return false;
+    }
+
+    /**
      * Grid position (s, d) of a slot (0 = pole). The oval: rows of three abreast, pole on the
      * inside; the last row sits at the exit of turn 4 so the whole field is on the front straight.
      * The road course: two by two, staggered, behind the start line.
@@ -173,6 +216,9 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
         pits.clear();
         lapTracker = new LapTracker();
         player = null;
+        bots.clear();
+        botsHandedBack.clear();
+        botLaps.clear();
         for (Car c : field) addCar(c, aiDrivers.get(c));
     }
 
@@ -281,12 +327,17 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
                 c.getInput().clear();
                 c.getInput().brake = 0.45f;
             }
+            for (com.racingsim.bot.ExternalDriver bot : bots.values()) updateBot(bot, dt, false);
         } else {
-            if (player != null) {
+            if (player != null && !botDrives(player, dt)) {
+                AIDriver pilot = driverOf.get(player);
                 if (playerOverride != null) playerOverride.accept(player, dt);
+                else if (pilot != null) pilot.update(dt, cars);      // a lost bot's player car
                 else playerInput.apply(player.getInput(), dt, player.getPhysics().getForwardSpeed());
             }
-            for (AIDriver ai : drivers) ai.update(dt, cars);
+            for (AIDriver ai : drivers) {
+                if (ai.getCar() != player && !botDrives(ai.getCar(), dt)) ai.update(dt, cars);
+            }
         }
 
         for (Car c : cars) {
@@ -298,6 +349,15 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
         for (Car c : cars) lapTracker.update(entries.get(c), c.trackS());
         updatePitStops(dt);
         lapTracker.updatePositions();
+        for (Map.Entry<Car, com.racingsim.bot.ExternalDriver> b : bots.entrySet()) {
+            LapTracker.Entry e = entries.get(b.getKey());
+            int done = e.lapsCompleted();
+            Integer before = botLaps.put(b.getKey(), done);
+            if (before != null && done > before) {
+                b.getValue().event("lapComplete", new com.racingsim.bot.Json.Out().obj().num("lap", done)
+                        .num("lapTime", e.lastLapTime()).num("position", e.position()).bool("finished", e.finished()).endObj());
+            }
+        }
 
         if (player != null) checkPlayerRecovery(dt);
 
@@ -306,7 +366,16 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
             Vector3f up = c.getBody().getPhysicsRotation().mult(Vector3f.UNIT_Y);
             boolean offTrack = c.trackD() < track.minD(c.trackS()) - 1f || c.trackD() > track.maxD(c.trackS()) + 2f
                     || c.getBody().getPhysicsLocation().y < track.elevation(c.trackS()) - 3f;
-            if (ai.needsRecovery() || up.y < 0.3f || offTrack) recover(ai);
+            // a bot's car: stuck (under 2 m/s) for 5 s of racing is towed back like an AI car
+            boolean botStuck = false;
+            boolean botDriven = bots.containsKey(c) && !bots.get(c).isLost();
+            if (botDriven && !waiting && !entries.get(c).finished()) {
+                float t = c.speed() < 2f ? botStuckTime.merge(c, FixedStepPhysics.DT, Float::sum) : 0f;
+                if (t == 0f) botStuckTime.put(c, 0f);
+                botStuck = t > 5f;
+                if (botStuck) botStuckTime.put(c, 0f);
+            }
+            if ((ai.needsRecovery() && !botDriven) || botStuck || up.y < 0.3f || offTrack) recover(ai);
         }
     }
 
@@ -395,6 +464,8 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
         }
         if (Float.isNaN(d)) return;
         recoveries++;
+        com.racingsim.bot.ExternalDriver bot = bots.get(c);
+        if (bot != null) bot.event("recovered", new com.racingsim.bot.Json.Out().obj().num("s", s).num("d", d).endObj());
         c.placeOnTrack(track, s, d, 35f);
         lapTracker.teleport(entries.get(c), s);
         ai.resetLane();

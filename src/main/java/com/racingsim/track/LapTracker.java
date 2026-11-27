@@ -13,7 +13,8 @@ public final class LapTracker {
 
     /** Progress state for one competitor. */
     public static final class Entry {
-        public final String name;
+        /** Shown in the standings (a bot driving an AI car takes the bot's name). */
+        public String name;
         public final boolean player;
         float totalDistance;
         float lastS;

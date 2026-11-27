@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Racing Sim bot SDK for C# (.NET 8, no packages) and the baseline bot:
+       dotnet run --project bots/csharp -- [--port 4510] -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>RacingSim.Bots</RootNamespace>
+  </PropertyGroup>
+
+</Project>

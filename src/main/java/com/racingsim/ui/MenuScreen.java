@@ -49,7 +49,7 @@ public final class MenuScreen {
 
     private int row;
     private TrackLayout track;
-    private final BitmapText subtitle, trackHint;
+    private final BitmapText subtitle, trackHint, botStatus;
     private int lapIndex = 0;
     private int opponents = 7;
     private int startPosition = 6;
@@ -102,6 +102,7 @@ public final class MenuScreen {
         centered("T auto gearbox   R reset to start line   C camera   G graphics quality   H help   Esc quit game",
                 base * 0.85f, DIM, width / 2, py + 87);
         trackHint = centered("", base * 0.85f, DIM, width / 2, py + 59);
+        botStatus = centered("", base * 0.85f, GOLD, width / 2, py + 34);
         centered("Race in the draft: tuck in behind a car to cut drag and slingshot past.",
                 base * 0.85f, DIM, width / 2, py + 31);
         refresh();
@@ -245,5 +246,10 @@ public final class MenuScreen {
         g.setLocalScale(w, h, 1);
         root.attachChild(g);
         return g;
+    }
+
+    /** The bots connected to the bot server (bots/PROTOCOL.md), or "" when there is none. */
+    public void setBotStatus(String s) {
+        if (!s.equals(botStatus.getText())) setCentered(botStatus, s);
     }
 }

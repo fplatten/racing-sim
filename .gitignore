@@ -37,3 +37,9 @@ __pycache__/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# AI training runs (tools/train/tune_ai.py)
+tools/train/runs/
+bots/java/out/
+bots/csharp/bin/
+bots/csharp/obj/
