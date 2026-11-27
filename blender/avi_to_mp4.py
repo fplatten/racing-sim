@@ -33,6 +33,9 @@ scene.render.resolution_percentage = 100
 scene.frame_start = 1
 scene.frame_end = movie.frame_duration
 
+# pass the pictures through unchanged (the default AgX view transform darkens them)
+scene.view_settings.view_transform = "Standard"
+scene.view_settings.look = "None"
 r = scene.render
 if hasattr(r.image_settings, "media_type"):  # Blender 5: video output is a separate media type
     r.image_settings.media_type = "VIDEO"

@@ -112,7 +112,7 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
     // RACINGSIM_MOVIE_LAP=1: run until the player completes lap 1, then fade to black and show the
     // repository link (an outro), instead of stopping after MOVIE_SECONDS
     private final boolean movieLap = System.getenv("RACINGSIM_MOVIE_LAP") != null;
-    private static final int MOVIE_LAP_MAX_SECONDS = 180;        // safety stop
+    private static final int MOVIE_LAP_MAX_SECONDS = 300;        // safety stop (a road course lap is ~2 min)
     private static final float OUTRO_FADE = 2.0f, OUTRO_TEXT_IN = 1.0f, OUTRO_HOLD = 5.0f;
     private static final String OUTRO_URL = "https://github.com/fplatten/racing-sim";
     private float outroTime = -1f;                                // < 0: no outro yet
@@ -420,11 +420,15 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
         recordMovieAudio();
         if (state == State.MENU && splashFade <= 0f) {
             movieMenuTime += tpf;
-            String[] cues = {
-                    "1.0 D", "1.5 R", "1.75 R", "2.0 R", "2.25 R", "2.5 R", "2.75 R",   // 7 -> 13 opponents
+            // (the menu opens on the TRACK row; the road course keeps its default wing)
+            String[] cues = TrackSpline.isOval() ? new String[]{
+                    "1.0 D", "1.25 D", "1.5 R", "1.75 R", "2.0 R", "2.25 R", "2.5 R", "2.75 R",   // 7 -> 13 opponents
                     "3.4 D", "3.8 R", "4.05 R", "4.3 R",                                 // start P6 -> P9
                     "4.9 D", "5.3 D", "5.7 R", "5.95 R", "6.2 R",                        // downforce 3/10
-                    "7.2 E"};
+                    "7.2 E"} : new String[]{
+                    "1.0 D", "1.4 D", "1.75 R", "2.0 R", "2.25 R", "2.5 R", "2.75 R", "3.0 R",   // 7 -> 13 opponents
+                    "3.6 D", "4.0 R", "4.25 R", "4.5 R",                                 // start P6 -> P9
+                    "5.6 E"};
             if (movieCue < cues.length) {
                 String[] c = cues[movieCue].split(" ");
                 if (movieMenuTime >= Float.parseFloat(c[0])) {
