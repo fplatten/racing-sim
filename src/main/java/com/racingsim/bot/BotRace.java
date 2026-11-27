@@ -115,6 +115,16 @@ public final class BotRace {
                 // clamped inside the walls), and the lap tracker follows it
                 e.getValue().setResetHandler(r -> {
                     float s = TrackSpline.wrapS((float) Json.num(r, "s", 0));
+                    // not on top of another car: move on until 40 m behind / 20 m ahead are clear
+                    for (int tries = 0; tries < 50; tries++) {
+                        boolean clear = true;
+                        for (Car o : field) {
+                            float ds = TrackSpline.deltaS(s, o.trackS());
+                            if (o != car && ds > -20f && ds < 40f) clear = false;
+                        }
+                        if (clear) break;
+                        s = TrackSpline.wrapS(s + 60f);
+                    }
                     float d = (float) Math.clamp(Json.num(r, "d", 0), track.minD(s) + 1.5, track.maxD(s) - 1.5);
                     float v = (float) Math.clamp(Json.num(r, "speed", 0), 0, 100);
                     car.placeOnTrack(track, s, d, v);
@@ -195,6 +205,7 @@ public final class BotRace {
                     .num("position", e.position()).num("laps", e.lapsCompleted()).bool("finished", e.finished())
                     .num("finishTime", e.finishTime()).num("bestLap", e.bestLapTime())
                     .num("distance", e.totalDistance()).num("contacts", contacts.getOrDefault(c, 0))
+                    .num("trackLimits", director.trackLimitsCount(c))
                     .bool("lost", bot && drivers.get(c).isLost()).endObj();
         }
         o.endArr().num("recoveries", director.getRecoveries()).endObj();

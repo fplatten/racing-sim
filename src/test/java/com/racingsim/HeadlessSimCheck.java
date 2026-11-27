@@ -323,6 +323,7 @@ public final class HeadlessSimCheck {
         }
         System.out.printf("Player mode %s: AI->player contacts %d (all car-car contacts %d), recoveries %d, max player speed %.1f mph%n",
                 playerMode, playerContacts[0], anyContacts[0], director.getRecoveries(), maxSpeed * 2.23694f);
+        if (TrackSpline.isRoadCourse()) System.out.printf("Track limits: %d penalties%n", director.trackLimitsTotal());
         System.out.printf("Tire squeal: max %.2f, audible (>0.2) for %.1f s%n", maxSqueal, squealFrames / 60f);
         float bestSum = 0f, fastest = Float.MAX_VALUE;
         int bestCount = 0;
@@ -379,11 +380,11 @@ public final class HeadlessSimCheck {
             StringBuilder j = new StringBuilder("{");
             j.append(String.format(java.util.Locale.ROOT,
                     "\"track\":\"%s\",\"cars\":%d,\"laps\":%d,\"seconds\":%.1f,\"raceTime\":%.2f,\"contacts\":%d,\"playerContacts\":%d,"
-                    + "\"recoveries\":%d,\"passStarts\":%d,\"passesDone\":%d,\"passesAborted\":%d,\"abortStall\":%d,\"abortLate\":%d,"
+                    + "\"recoveries\":%d,\"trackLimits\":%d,\"passStarts\":%d,\"passesDone\":%d,\"passesAborted\":%d,\"abortStall\":%d,\"abortLate\":%d,"
                     + "\"abortYield\":%d,\"abortBlocked\":%d,\"outbrakeStarts\":%d,\"outbrakesDone\":%d,\"emergencyMoves\":%d,"
                     + "\"offLinePct\":%.3f,\"threeWidePct\":%.3f,\"fastestLap\":%s,\"avgBestLap\":%s,\"cleanAirTopMph\":%.1f,\"order\":[",
                     TrackSpline.layout().key(), carCount, laps, seconds, director.getLapTracker().raceTime(), anyContacts[0],
-                    playerContacts[0], director.getRecoveries(), a.passStarts, a.passesDone, a.passesAborted, a.abortStall,
+                    playerContacts[0], director.getRecoveries(), director.trackLimitsTotal(), a.passStarts, a.passesDone, a.passesAborted, a.abortStall,
                     a.abortLate, a.abortYield, a.abortBlocked, a.outbrakeStarts, a.outbrakesDone, a.emergencyMoves,
                     100.0 * a.offLineTicks / ticks, 100.0 * a.threeWideTicks / ticks,
                     bestCount > 0 ? String.format(java.util.Locale.ROOT, "%.3f", fastest) : "null",

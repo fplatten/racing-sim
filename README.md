@@ -238,6 +238,11 @@ A car that still gets over a wall lands and rolls on solid ground. If you're stu
 - Headless: `./gradlew botRace -Ptrack=road -Plaps=3 -Popponents=7` waits for a bot and races it.
 - In the game: `./gradlew run -Pbots=4510` (or `RACINGSIM_BOTS=4510`). Connected bots take AI cars, and with `RACINGSIM_BOT_PLAYER=1` one drives your car.
 
+**Track limits (the road course).** Every car follows this rule, whether a player, the built-in AI or a bot:
+- **The offence:** all four wheels off the tarmac for more than 0.5 s at racing speed.
+- **The penalty:** the power is cut to 20% for 3 s, with a "TRACK LIMITS" message on the HUD. That costs more than any corner cut gains.
+- **The AI:** the built-in AI never trips it.
+
 **AI parameters.** The built-in AI's tuning lives in `src/main/resources/AI/<track>.properties` (`ai/AiParams.java`).
 
 - `-PaiSling=2`-style properties override one value; `-PaiParams=<file>` loads a whole set.

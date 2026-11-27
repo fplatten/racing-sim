@@ -71,6 +71,65 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
     private volatile boolean running;
     /** Standing start: time since the field lined up (-1: the lights are out), and since they went out. */
     private volatile float lightsTime = -1f, greenTime = -1f;
+    /**
+     * Track limits (the road course): all four wheels off the tarmac for more than LIMITS_OFF_TIME s
+     * at racing speed (a cut corner, or running wide) cuts the car's power to LIMITS_THROTTLE for
+     * LIMITS_PENALTY s, which costs more than any cut gains. Counted again only once the car has
+     * been back on the tarmac.
+     */
+    public static final float LIMITS_OFF_TIME = 0.5f, LIMITS_PENALTY = 3f, LIMITS_THROTTLE = 0.2f, LIMITS_MIN_SPEED = 15f;
+    /** Per car: [time off the tarmac (-1 = penalised, waiting to be back on), penalty left, count]. */
+    private final Map<Car, float[]> limits = new HashMap<>();
+
+    /** Seconds of track-limits penalty (power cut) left for a car, 0 for none. */
+    public float trackLimitsPenalty(Car c) {
+        float[] l = limits.get(c);
+        return l == null ? 0f : l[1];
+    }
+
+    /** Track-limits penalties a car has had this race. */
+    public int trackLimitsCount(Car c) {
+        float[] l = limits.get(c);
+        return l == null ? 0 : (int) l[2];
+    }
+
+    /** Every car's track-limits penalties this race. */
+    public int trackLimitsTotal() {
+        int n = 0;
+        for (float[] l : limits.values()) n += (int) l[2];
+        return n;
+    }
+
+    private void applyTrackLimits(Car c, float dt) {
+        float[] l = limits.computeIfAbsent(c, k -> new float[3]);
+        int contact = 0, tarmac = 0;
+        for (com.racingsim.vehicle.VehiclePhysics.Wheel w : c.getPhysics().getWheels()) {
+            if (!w.contact) continue;
+            contact++;
+            if (w.onTrack) tarmac++;
+        }
+        boolean off = contact > 0 && tarmac == 0;
+        if (!off && contact > 0) {
+            l[0] = 0f;                                       // back on the tarmac
+        } else if (off && l[0] >= 0f && c.speed() > LIMITS_MIN_SPEED && !entries.get(c).finished()) {
+            l[0] += dt;
+            if (l[0] > LIMITS_OFF_TIME) {
+                l[0] = -1f;
+                l[1] = LIMITS_PENALTY;
+                l[2]++;
+                com.racingsim.bot.ExternalDriver bot = bots.get(c);
+                if (bot != null) {
+                    bot.event("trackLimits", new com.racingsim.bot.Json.Out().obj().num("s", Math.round(c.trackS()))
+                            .num("penalty", LIMITS_PENALTY).num("count", l[2]).endObj());
+                }
+            }
+        }
+        if (l[1] > 0f) {
+            l[1] = Math.max(0f, l[1] - dt);
+            c.getInput().throttle = Math.min(c.getInput().throttle, LIMITS_THROTTLE);
+        }
+    }
+
     /** Cars driven by external bots (bots/PROTOCOL.md); a lost bot's car goes back to its AI driver. */
     private final Map<Car, com.racingsim.bot.ExternalDriver> bots = new HashMap<>();
     private final java.util.Set<Car> botsHandedBack = new java.util.HashSet<>();
@@ -219,6 +278,7 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
         bots.clear();
         botsHandedBack.clear();
         botLaps.clear();
+        limits.clear();
         for (Car c : field) addCar(c, aiDrivers.get(c));
     }
 
@@ -271,6 +331,7 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
         lapTracker.updatePositions();
         playerInput.clearCommands();
         recoveries = 0;
+        limits.clear();
         running = true;
     }
 
@@ -338,6 +399,7 @@ public final class RaceDirector implements FixedStepPhysics.Listener {
             for (AIDriver ai : drivers) {
                 if (ai.getCar() != player && !botDrives(ai.getCar(), dt)) ai.update(dt, cars);
             }
+            if (TrackSpline.isRoadCourse()) for (Car c : cars) applyTrackLimits(c, dt);
         }
 
         for (Car c : cars) {

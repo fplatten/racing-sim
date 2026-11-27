@@ -18,7 +18,8 @@ Observation (OBS_SIZE floats, all roughly -1..1):
   opponents: 8 x (ds, dd, relSpeed, present)
 Action: [steer -1..1 (+ right), pedal -1..1 (> 0 throttle, < 0 brake)].
 Reward: metres of progress / 10 per step, -0.5 per step with two or more wheels off the tarmac,
--5 per contact, -20 and the end of the episode for a crash (the car is towed back: "recovered").
+-5 per contact, -10 per track-limits penalty (on top of the power cut it brings), -20 and the end of
+the episode for a crash (the car is towed back: "recovered").
 """
 import json
 import math
@@ -174,6 +175,8 @@ class RacingSimEnv(_Base):
         for e in events:
             if e["event"] == "contact":
                 reward -= 5.0
+            elif e["event"] == "trackLimits":
+                reward -= 10.0
             elif e["event"] == "recovered":
                 reward -= 20.0
                 terminated = True

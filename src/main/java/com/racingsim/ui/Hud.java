@@ -55,7 +55,7 @@ public final class Hud {
 
     private BitmapText speedText, speedUnit, gearText, gearInfo, rpmText, gText, slipText;
     private BitmapText posText, lapText, timeText, lastText, bestText, standingsText;
-    private BitmapText draftText, helpText, camText, pitText, pitMsg, pitSub, standingsGap;
+    private BitmapText draftText, helpText, camText, pitText, pitMsg, pitSub, standingsGap, limitsMsg, limitsSub;
     /** Per standings row: driver type and wing level (each row has its own color). */
     private final BitmapText[] standingsType = new BitmapText[STANDINGS_ROWS];
     private final BitmapText[] standingsWing = new BitmapText[STANDINGS_ROWS];
@@ -154,6 +154,10 @@ public final class Hud {
         pitBarBg = rect(bx, by, PIT_BAR_W, 10, new ColorRGBA(1, 1, 1, 0.15f), 0.5f);
         pitBar = rect(bx, by, PIT_BAR_W, 10, PIT_YELLOW, 0.6f);
 
+        // ---- track limits (the road course): where the pit messages go on the oval ----
+        limitsMsg = text(base * 2.2f, PIT_YELLOW, 0, height * 0.72f);
+        limitsSub = text(base * 1.0f, ColorRGBA.White, 0, height * 0.72f - base * 2.6f);
+
         // ---- steering wheel (bottom center, 10 to 2 o'clock visible) ----
         steeringWheel = new SteeringWheelWidget(assets, font, width, 300f);
         root.attachChild(steeringWheel.getNode());
@@ -177,6 +181,20 @@ public final class Hud {
                 : n + ":  wheel steer  pedals gas/brake  RB/LB paddles shift  X auto  Back reset  Y camera  Start menu"
                   + "   (keys also work, H hides help)");
         helpText.setLocalTranslation(width / 2 - helpText.getLineWidth() / 2, height - 104, 1);
+    }
+
+    /** Track limits: the seconds of power cut left (0 hides the message). */
+    public void setTrackLimits(float left) {
+        String msg = left > 0f ? "TRACK LIMITS" : "";
+        String sub = left > 0f ? String.format("all four wheels off the road: power cut for %.1f s", left) : "";
+        if (!msg.equals(limitsMsg.getText())) {
+            limitsMsg.setText(msg);
+            limitsMsg.setLocalTranslation(width / 2 - limitsMsg.getLineWidth() / 2, limitsMsg.getLocalTranslation().y, 1);
+        }
+        if (!sub.equals(limitsSub.getText())) {
+            limitsSub.setText(sub);
+            limitsSub.setLocalTranslation(width / 2 - limitsSub.getLineWidth() / 2, limitsSub.getLocalTranslation().y, 1);
+        }
     }
 
     public void update(Car player, RaceInfo info) {

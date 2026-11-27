@@ -847,6 +847,7 @@ public final class RaceApp extends SimpleApplication implements ActionListener {
         };
         hud.setController(controller != null && controller.isConnected() ? controller.getName() : null);
         hud.setStartLights(director.startLights(), director.greenTime());
+        hud.setTrackLimits(director.trackLimitsPenalty(player));
         hud.update(player, new Hud.RaceInfo(director.getLapTracker(), me, camName, showHelp, playerInput.isMouseSteering(),
                 director.pitOf(player), this::driverTag));
 

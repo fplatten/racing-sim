@@ -26,9 +26,13 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 
 def make_env(rank, track, opponents):
+    """opponents: one number, or a list cycled over the envs (e.g. 0,3,5,7: a mix of solo laps and traffic)."""
+    counts = [int(x) for x in str(opponents).split(",")]
+    n = counts[rank % len(counts)]
+
     def _f():
         from racingsim_env import RacingSimEnv
-        return RacingSimEnv(track=track, port=4600 + rank, opponents=opponents, seed=rank)
+        return RacingSimEnv(track=track, port=4600 + rank, opponents=n, seed=rank)
     return _f
 
 
@@ -92,8 +96,9 @@ def main():
     ap.add_argument("--envs", type=int, default=8)
     ap.add_argument("--steps", type=int, default=3_000_000)
     ap.add_argument("--clone", type=int, default=200_000)
-    ap.add_argument("--opponents", type=int, default=0)
-    ap.add_argument("--resume")
+    ap.add_argument("--opponents", default="0", help="AI cars per env: 5, or a list cycled over the envs: 0,3,5,7")
+    ap.add_argument("--resume", help="a saved model (.zip) to go on training (no cloning then)")
+    ap.add_argument("--lr", type=float, default=3e-4)
     args = ap.parse_args()
 
     from stable_baselines3 import PPO
@@ -105,10 +110,10 @@ def main():
     venv = VecMonitor(SubprocVecEnv([make_env(i, args.track, args.opponents) for i in range(args.envs)]))
     policy_kwargs = dict(net_arch=dict(pi=[128, 128], vf=[256, 256]), log_std_init=-1.0)
     if args.resume:
-        model = PPO.load(args.resume, env=venv)
+        model = PPO.load(args.resume, env=venv, custom_objects={"learning_rate": args.lr})
     else:
         model = PPO("MlpPolicy", venv, n_steps=1024, batch_size=4096, gamma=0.995, gae_lambda=0.95,
-                    learning_rate=3e-4, ent_coef=0.0, clip_range=0.2, policy_kwargs=policy_kwargs, verbose=1)
+                    learning_rate=args.lr, ent_coef=0.0, clip_range=0.2, policy_kwargs=policy_kwargs, verbose=1)
         if args.clone > 0:
             from racingsim_env import RacingSimEnv
             env = RacingSimEnv(track=args.track, port=4590, seed=99)
