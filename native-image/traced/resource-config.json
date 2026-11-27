@@ -1,6 +1,10 @@
 {
   "resources":{
   "includes":[{
+    "pattern":"\\QAI/road.properties\\E"
+  }, {
+    "pattern":"\\QAI/oval.properties\\E"
+  }, {
     "pattern":"\\QCommon/IBL/IBLKernels.frag\\E"
   }, {
     "pattern":"\\QCommon/IBL/IBLKernels.j3md\\E"
