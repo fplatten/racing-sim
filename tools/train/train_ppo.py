@@ -25,14 +25,14 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.dirname(__file__))
 
 
-def make_env(rank, track, opponents):
+def make_env(rank, track, opponents, strict=False):
     """opponents: one number, or a list cycled over the envs (e.g. 0,3,5,7: a mix of solo laps and traffic)."""
     counts = [int(x) for x in str(opponents).split(",")]
     n = counts[rank % len(counts)]
 
     def _f():
         from racingsim_env import RacingSimEnv
-        return RacingSimEnv(track=track, port=4600 + rank, opponents=n, seed=rank)
+        return RacingSimEnv(track=track, port=4600 + rank, opponents=n, seed=rank, strict=strict)
     return _f
 
 
@@ -99,6 +99,7 @@ def main():
     ap.add_argument("--opponents", default="0", help="AI cars per env: 5, or a list cycled over the envs: 0,3,5,7")
     ap.add_argument("--resume", help="a saved model (.zip) to go on training (no cloning then)")
     ap.add_argument("--lr", type=float, default=3e-4)
+    ap.add_argument("--strict", action="store_true", help="track limits end the episode; harder contact / crash penalties")
     args = ap.parse_args()
 
     from stable_baselines3 import PPO
@@ -107,7 +108,7 @@ def main():
 
     run = os.path.join(ROOT, "tools", "train", "runs", f"ppo-{args.track}-{time.strftime('%Y%m%d-%H%M%S')}")
     os.makedirs(run, exist_ok=True)
-    venv = VecMonitor(SubprocVecEnv([make_env(i, args.track, args.opponents) for i in range(args.envs)]))
+    venv = VecMonitor(SubprocVecEnv([make_env(i, args.track, args.opponents, args.strict) for i in range(args.envs)]))
     policy_kwargs = dict(net_arch=dict(pi=[128, 128], vf=[256, 256]), log_std_init=-1.0)
     if args.resume:
         model = PPO.load(args.resume, env=venv, custom_objects={"learning_rate": args.lr})

@@ -19,7 +19,9 @@ Observation (OBS_SIZE floats, all roughly -1..1):
 Action: [steer -1..1 (+ right), pedal -1..1 (> 0 throttle, < 0 brake)].
 Reward: metres of progress / 10 per step, -0.5 per step with two or more wheels off the tarmac,
 -5 per contact, -10 per track-limits penalty (on top of the power cut it brings), -20 and the end of
-the episode for a crash (the car is towed back: "recovered").
+the episode for a crash (the car is towed back: "recovered"). strict=True: a track-limits penalty
+ends the episode (-30), a crash costs 50, a contact 10, and tailgating (time to contact under 1 s
+with a car right ahead) 0.2 a step.
 """
 import json
 import math
@@ -67,9 +69,12 @@ class RacingSimEnv(_Base):
     metadata = {"render_modes": []}
 
     def __init__(self, track="road", port=4600, opponents=0, max_steps=3000, control_hz=30, seed=0,
-                 start_spread=True, java="java"):
+                 start_spread=True, java="java", strict=False):
         self.track, self.port, self.opponents = track, port, opponents
         self.max_steps, self.control_hz, self.start_spread = max_steps, control_hz, start_spread
+        # strict: a track-limits penalty ends the episode (-30), a crash costs 50, a contact 10, and
+        # closing on a car right ahead (time to contact under 1 s) 0.2 a step
+        self.strict = strict
         self.rng = random.Random(seed)
         self.proc = None
         self.sock = None
@@ -172,13 +177,19 @@ class RacingSimEnv(_Base):
         terminated = False
         if self.state["car"]["wheelsOnTrack"] < 3:
             reward -= 0.5
+        if self.strict:
+            # tailgating: closing fast on a car right ahead in our lane
+            for o in self.state["opponents"]:
+                if 0 < o["ds"] < 30 and abs(o["dd"]) < 2.2 and 0 <= o["ttc"] < 1.0:
+                    reward -= 0.2
         for e in events:
             if e["event"] == "contact":
-                reward -= 5.0
+                reward -= 10.0 if self.strict else 5.0
             elif e["event"] == "trackLimits":
-                reward -= 10.0
+                reward -= 30.0 if self.strict else 10.0
+                terminated = terminated or self.strict
             elif e["event"] == "recovered":
-                reward -= 20.0
+                reward -= 50.0 if self.strict else 20.0
                 terminated = True
         truncated = self.steps >= self.max_steps
         obs = observe(self.state)
